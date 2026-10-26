@@ -39,7 +39,7 @@ export default function TabsLayout() {
                             <Ionicons
                                 name={focused ? tab.iconFocused : tab.iconUnfocused}
                                 size={22}
-                                color={color}
+                                color={String(color)}
                             />
                         ),
                     }}

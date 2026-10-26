@@ -16,17 +16,15 @@ export function MetricCard({
   return (
     <View
       style={{
-        backgroundColor: Colors.cloud,
+        backgroundColor: "#FAF8F5",
         borderWidth: 1,
-        borderColor: Colors.fog,
-        borderRadius: Radius.card,
+        borderColor: "#EAE6DC",
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 36,
+        borderBottomRightRadius: 18,
+        borderBottomLeftRadius: 36,
         padding: 18,
-        marginBottom: 12,
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 2,
-        elevation: 1,
+        marginBottom: 16,
       }}
     >
       {/* Top Label */}
@@ -72,7 +70,7 @@ export function MetricCard({
         </Text>
       </View>
 
-      {/* Bottom Badges Row: 8 Active (Left) <-----------------> Next Renewal (Right) */}
+      {/* Bottom Badges Row: Active (Left) <-----------------> Next Renewal (Right) */}
       <View
         style={{
           flexDirection: "row",
@@ -85,10 +83,10 @@ export function MetricCard({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: Colors.limestone,
-            borderRadius: Radius.tag,
-            paddingVertical: 5,
-            paddingHorizontal: 10,
+            backgroundColor: "#F3EFEA",
+            borderRadius: 9999,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
           }}
         >
           <View
@@ -114,10 +112,10 @@ export function MetricCard({
         {/* Next Renewal Badge */}
         <View
           style={{
-            backgroundColor: Colors.limestone,
-            borderRadius: Radius.tag,
-            paddingVertical: 5,
-            paddingHorizontal: 10,
+            backgroundColor: "#F3EFEA",
+            borderRadius: 9999,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
           }}
         >
           <Text

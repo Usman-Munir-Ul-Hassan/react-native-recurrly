@@ -27,12 +27,12 @@ export function FilterDropdown({ selectedTab, onSelectTab }: FilterDropdownProps
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: Colors.cloud,
+          backgroundColor: "#FAF8F5",
           borderWidth: 1,
-          borderColor: Colors.fog,
-          borderRadius: Radius.tag,
+          borderColor: "#EAE6DC",
+          borderRadius: 9999,
           paddingVertical: 7,
-          paddingHorizontal: 12,
+          paddingHorizontal: 16,
         }}
       >
         <Text
