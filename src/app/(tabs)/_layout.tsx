@@ -1,68 +1,50 @@
+import { TAB_ITEMS } from "@/constants/tabs";
+import { Colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: "#4f46e5",
-                tabBarInactiveTintColor: "#94a3b8",
-                tabBarStyle: {
-                    backgroundColor: "#ffffff",
-                    borderTopColor: "#f1f5f9",
-                    height: 60,
-                    paddingBottom: 8,
-                    paddingTop: 8,
+                headerShown: false,
+                tabBarActiveTintColor: "#000000",
+                tabBarInactiveTintColor: "#8E8E93",
+                tabBarLabelStyle: {
+                    fontSize: 10,
+                    fontWeight: "600",
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
                 },
-                headerStyle: { backgroundColor: "#4f46e5" },
-                headerTintColor: "#ffffff",
-                headerTitleStyle: { fontWeight: "bold" },
+                tabBarStyle: {
+                    backgroundColor: "#FFFFFF",
+                    borderTopColor: Colors.fog,
+                    borderTopWidth: 1,
+                    height: 60 + insets.bottom,
+                    paddingBottom: insets.bottom + 4,
+                    paddingTop: 6,
+                },
             }}
         >
-            {/* Tab 1: Home */}
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: "Home",
-                    headerTitle: "Product Catalog 🛍️",
-                    tabBarIcon: ({ color }) => (
-                        <Text style={{ fontSize: 20 }}>🏠</Text>
-                    ),
-                }}
-            />
-
-            {/* Tab 2: Subscription */}
-            <Tabs.Screen
-                name="subscription"
-                options={{
-                    title: "Premium",
-                    headerTitle: "Subscription Plans 💎",
-                    tabBarIcon: ({ color }) => (
-                        <Text style={{ fontSize: 20 }}>💎</Text>
-                    ),
-                }}
-            />
-
-            {/* Tab 3: Settings */}
-            <Tabs.Screen
-                name="settings"
-                options={{
-                    title: "Settings",
-                    headerTitle: "App Settings ⚙️",
-                    tabBarIcon: ({ color }) => (
-                        <Text style={{ fontSize: 20 }}>⚙️</Text>
-                    ),
-                }}
-            />
-
-            {/* Details screen ko tab bar mein icon banne se hide karna */}
-            <Tabs.Screen
-                name="details"
-                options={{
-                    href: null,
-                    headerShown: false,
-                }}
-            />
+            {TAB_ITEMS.map((tab) => (
+                <Tabs.Screen
+                    key={tab.name}
+                    name={tab.name}
+                    options={{
+                        title: tab.title,
+                        tabBarIcon: ({ focused, color }) => (
+                            <Ionicons
+                                name={focused ? tab.iconFocused : tab.iconUnfocused}
+                                size={22}
+                                color={color}
+                            />
+                        ),
+                    }}
+                />
+            ))}
         </Tabs>
     );
 }

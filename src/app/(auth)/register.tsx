@@ -1,69 +1,101 @@
 import { AppButton } from "@/components/ui/app-button";
+import { AppCheckbox } from "@/components/ui/app-checkbox";
+import { AppInput } from "@/components/ui/app-input";
+import { AuthDivider } from "@/components/ui/auth-divider";
+import { SocialButton } from "@/components/ui/social-button";
+import { Colors, Typography } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RegisterScreen() {
     const router = useRouter();
+    const [agreed, setAgreed] = useState(false);
+
+    const handleRegister = () => {
+        if (!agreed) {
+            alert("Please accept the Terms of Service to continue.");
+            return;
+        }
+        router.replace("/(tabs)");
+    };
 
     return (
-        <View className="flex-1 bg-white p-6 justify-center">
-            <View className="mb-8">
-                <Text className="text-3xl font-extrabold text-slate-900 mb-2">
-                    Create Account 🚀
-                </Text>
-                <Text className="text-slate-500 text-sm">
-                    Join thousands of members enjoying premium features.
-                </Text>
-            </View>
-
-            <View className="gap-4 mb-6">
-                <View>
-                    <Text className="text-xs font-bold text-slate-700 uppercase mb-2">
-                        Full Name
+        <SafeAreaView className="flex-1 bg-white">
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+                className="px-6 py-8"
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Header Section */}
+                <View className="mb-8">
+                    <Text style={[Typography.display, { marginBottom: 8 }]}>
+                        Create an account
                     </Text>
-                    <TextInput
-                        placeholder="John Doe"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-                    />
+                    <Text style={Typography.subtitle}>
+                        Track and manage your subscription expenses in one place.
+                    </Text>
                 </View>
 
-                <View>
-                    <Text className="text-xs font-bold text-slate-700 uppercase mb-2">
-                        Email Address
-                    </Text>
-                    <TextInput
-                        placeholder="name@example.com"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-                        keyboardType="email-address"
-                    />
+                {/* Form Inputs */}
+                <AppInput
+                    label="Full Name"
+                    placeholder="Jane Doe"
+                    autoCapitalize="words"
+                />
+
+                <AppInput
+                    label="Email address"
+                    placeholder="name@example.com"
+                    keyboardType="email-address"
+                />
+
+                <AppInput
+                    label="Password"
+                    placeholder="At least 8 characters"
+                    isPassword
+                    helperText="Must be at least 8 characters"
+                />
+
+                {/* Terms & Privacy Checkbox */}
+                <AppCheckbox checked={agreed} onChange={setAgreed} />
+
+                {/* Primary CTA */}
+                <View className="mb-2">
+                    <AppButton title="Create Account" onPress={handleRegister} />
                 </View>
 
-                <View>
-                    <Text className="text-xs font-bold text-slate-700 uppercase mb-2">
-                        Password
+                {/* Divider */}
+                <AuthDivider />
+
+                {/* Social SSO Login */}
+                <SocialButton
+                    provider="github"
+                    onPress={() => alert("GitHub SSO Triggered")}
+                />
+
+                {/* Footer Navigation */}
+                <View className="flex-row justify-center items-center mt-8">
+                    <Text style={[Typography.body, { color: Colors.graphite }]}>
+                        Already have an account?{" "}
                     </Text>
-                    <TextInput
-                        placeholder="Create password"
-                        secureTextEntry
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-                    />
+                    <Pressable onPress={() => router.back()}>
+                        <Text
+                            style={[
+                                Typography.body,
+                                {
+                                    color: Colors.pitchBlack,
+                                    fontWeight: "600",
+                                    textDecorationLine: "underline",
+                                },
+                            ]}
+                        >
+                            Log in
+                        </Text>
+                    </Pressable>
                 </View>
-            </View>
-
-            <AppButton
-                title="Create Account"
-                onPress={() => {
-                    alert("Account Created! 🎉");
-                    router.replace("/");
-                }}
-            />
-
-            <View className="flex-row justify-center mt-6">
-                <Text className="text-slate-500 text-sm">Already a member? </Text>
-                <Pressable onPress={() => router.back()}>
-                    <Text className="text-indigo-600 font-bold text-sm">Sign In</Text>
-                </Pressable>
-            </View>
-        </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }

@@ -1,68 +1,90 @@
 import { AppButton } from "@/components/ui/app-button";
+import { AppInput } from "@/components/ui/app-input";
+import { AuthDivider } from "@/components/ui/auth-divider";
+import { SocialButton } from "@/components/ui/social-button";
+import { Colors, Typography } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
     const router = useRouter();
 
     const handleLogin = () => {
-        // User login hone ke baad main tabs par wapas bhejenge
-        router.replace("/");
+        router.replace("/(tabs)");
     };
 
     return (
-        <View className="flex-1 bg-white p-6 justify-center">
-            <View className="mb-8">
-                <Text className="text-3xl font-extrabold text-slate-900 mb-2">
-                    Welcome Back 👋
-                </Text>
-                <Text className="text-slate-500 text-sm">
-                    Please sign in to continue to your account.
-                </Text>
-            </View>
-
-            <View className="gap-4 mb-6">
-                <View>
-                    <Text className="text-xs font-bold text-slate-700 uppercase mb-2">
-                        Email Address
+        <SafeAreaView className="flex-1 bg-white">
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+                className="px-6 py-8"
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Header Section */}
+                <View className="mb-8">
+                    <Text style={[Typography.display, { marginBottom: 8 }]}>
+                        Log in to your account
                     </Text>
-                    <TextInput
-                        placeholder="name@example.com"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
+                    <Text style={Typography.subtitle}>
+                        Welcome back. Enter your credentials to access your subscriptions.
+                    </Text>
                 </View>
 
-                <View>
-                    <Text className="text-xs font-bold text-slate-700 uppercase mb-2">
-                        Password
-                    </Text>
-                    <TextInput
-                        placeholder="••••••••"
-                        secureTextEntry
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900"
-                    />
+                {/* Inputs */}
+                <AppInput
+                    label="Email address"
+                    placeholder="name@example.com"
+                    keyboardType="email-address"
+                />
+
+                <AppInput
+                    label="Password"
+                    placeholder="••••••••••••"
+                    isPassword
+                    rightActionText="Forgot?"
+                    onRightActionPress={() => router.push("/forgot-password")}
+                />
+
+                {/* Primary CTA */}
+                <View className="mt-2 mb-2">
+                    <AppButton title="Log in" onPress={handleLogin} />
                 </View>
 
-                <Pressable
-                    onPress={() => router.push("/forgot-password")}
-                    className="self-end"
-                >
-                    <Text className="text-indigo-600 text-xs font-semibold">
-                        Forgot Password?
+                {/* Divider */}
+                <AuthDivider />
+
+                {/* Social SSO Logins */}
+                <SocialButton
+                    provider="github"
+                    onPress={() => alert("GitHub SSO Triggered")}
+                />
+                <SocialButton
+                    provider="google"
+                    onPress={() => alert("Google SSO Triggered")}
+                />
+
+                {/* Footer Navigation */}
+                <View className="flex-row justify-center items-center mt-8">
+                    <Text style={[Typography.body, { color: Colors.graphite }]}>
+                        Don't have an account?{" "}
                     </Text>
-                </Pressable>
-            </View>
-
-            <AppButton title="Sign In" onPress={handleLogin} />
-
-            <View className="flex-row justify-center mt-6">
-                <Text className="text-slate-500 text-sm">Don't have an account? </Text>
-                <Pressable onPress={() => router.push("/register")}>
-                    <Text className="text-indigo-600 font-bold text-sm">Sign Up</Text>
-                </Pressable>
-            </View>
-        </View>
+                    <Pressable onPress={() => router.push("/register")}>
+                        <Text
+                            style={[
+                                Typography.body,
+                                {
+                                    color: Colors.pitchBlack,
+                                    fontWeight: "600",
+                                    textDecorationLine: "underline",
+                                },
+                            ]}
+                        >
+                            Sign up
+                        </Text>
+                    </Pressable>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
