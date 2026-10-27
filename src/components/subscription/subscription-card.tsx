@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { Colors } from "@/constants/theme";
+import { getSemanticCardTheme } from "@/constants/theme";
 import { Subscription } from "@/types/subscription";
 
 interface SubscriptionCardProps {
@@ -9,15 +9,23 @@ interface SubscriptionCardProps {
 }
 
 export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProps) {
+  const [imageError, setImageError] = useState(false);
   const isCancelled = subscription.status === "Cancelled";
+  const theme = getSemanticCardTheme(subscription);
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.88 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+      })}
+    >
       <View
         style={{
-          backgroundColor: "#FAF8F5",
+          backgroundColor: isCancelled ? "#F5F5F5" : theme.bg,
           borderWidth: 1,
-          borderColor: "#EAE6DC",
+          borderColor: isCancelled ? "#E5E5E5" : theme.borderColor,
           borderTopLeftRadius: 14,
           borderTopRightRadius: 36,
           borderBottomRightRadius: 14,
@@ -37,7 +45,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
             style={{
               width: 48,
               height: 48,
-              backgroundColor: "#F3EFEA",
+              backgroundColor: isCancelled ? "rgba(0,0,0,0.05)" : theme.iconBg,
               borderRadius: 14,
               alignItems: "center",
               justifyContent: "center",
@@ -45,9 +53,10 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               overflow: "hidden",
             }}
           >
-            {subscription.logoUrl ? (
+            {subscription.logoUrl && !imageError ? (
               <Image
                 source={{ uri: subscription.logoUrl }}
+                onError={() => setImageError(true)}
                 style={{ width: 28, height: 28, resizeMode: "contain" }}
               />
             ) : (
@@ -55,7 +64,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: Colors.pitchBlack,
+                  color: isCancelled ? "#999999" : theme.textColor,
                 }}
               >
                 {subscription.initials}
@@ -70,7 +79,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               style={{
                 fontSize: 17,
                 fontWeight: "700",
-                color: Colors.pitchBlack,
+                color: isCancelled ? "#999999" : theme.textColor,
                 marginBottom: 3,
               }}
             >
@@ -80,7 +89,8 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               numberOfLines={1}
               style={{
                 fontSize: 13,
-                color: isCancelled ? "#DC2626" : "#6B7280",
+                fontWeight: "500",
+                color: isCancelled ? "#DC2626" : theme.subtextColor,
               }}
             >
               {isCancelled ? "Cancelled" : subscription.renewalDateShort}
@@ -94,7 +104,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
             style={{
               fontSize: 20,
               fontWeight: "700",
-              color: Colors.pitchBlack,
+              color: isCancelled ? "#999999" : theme.textColor,
               fontVariant: ["tabular-nums"],
             }}
           >
@@ -103,7 +113,8 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
           <Text
             style={{
               fontSize: 13,
-              color: "#6B7280",
+              fontWeight: "500",
+              color: isCancelled ? "#999999" : theme.subtextColor,
               marginTop: 2,
             }}
           >

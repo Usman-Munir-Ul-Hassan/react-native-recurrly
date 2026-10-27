@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,6 +10,7 @@ export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { getSubscription, cancelSubscription } = useSubscriptions();
+  const [imageError, setImageError] = useState(false);
 
   const subscription = getSubscription(id);
 
@@ -105,9 +106,10 @@ export default function SubscriptionDetailScreen() {
               overflow: "hidden",
             }}
           >
-            {subscription.logoUrl ? (
+            {subscription.logoUrl && !imageError ? (
               <Image
                 source={{ uri: subscription.logoUrl }}
+                onError={() => setImageError(true)}
                 style={{ width: 34, height: 34, resizeMode: "contain" }}
               />
             ) : (

@@ -40,7 +40,7 @@ export default function SubscriptionsFeedScreen() {
   });
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 40 }}
@@ -65,15 +65,15 @@ export default function SubscriptionsFeedScreen() {
               width: 34,
               height: 34,
               borderRadius: 17,
-              backgroundColor: Colors.cloud,
+              backgroundColor: Colors.badgeBg,
               borderWidth: 1,
-              borderColor: Colors.fog,
+              borderColor: Colors.badgeBorder,
             }}
           >
             <Text
               style={{
                 fontSize: 12,
-                fontWeight: "600",
+                fontWeight: "700",
                 color: Colors.pitchBlack,
               }}
             >
@@ -106,7 +106,7 @@ export default function SubscriptionsFeedScreen() {
                 onPress={() => router.push("/(tabs)/subscription")}
                 style={{
                   borderWidth: 1,
-                  borderColor: "#D1D5DB",
+                  borderColor: Colors.badgeBorder,
                   borderRadius: 9999,
                   paddingHorizontal: 14,
                   paddingVertical: 5,
@@ -115,7 +115,7 @@ export default function SubscriptionsFeedScreen() {
                 <Text
                   style={{
                     fontSize: 13,
-                    fontWeight: "500",
+                    fontWeight: "600",
                     color: Colors.pitchBlack,
                   }}
                 >
@@ -160,7 +160,7 @@ export default function SubscriptionsFeedScreen() {
           <Pressable
             onPress={() => Alert.alert("Add Subscription", "Opening add commitment modal...")}
             style={{
-              backgroundColor: Colors.pitchBlack,
+              backgroundColor: Colors.action,
               borderRadius: 9999,
               paddingVertical: 7,
               paddingHorizontal: 16,
