@@ -1,5 +1,5 @@
-import React from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors, Radius } from "@/constants/theme";
@@ -10,6 +10,7 @@ export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { getSubscription, cancelSubscription } = useSubscriptions();
+  const [imageError, setImageError] = useState(false);
 
   const subscription = getSubscription(id);
 
@@ -91,7 +92,7 @@ export default function SubscriptionDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 }}
       >
-        {/* Monogram Box & Titles */}
+        {/* Brand Logo / Monogram Box & Titles */}
         <View className="flex-row items-center mb-6">
           <View
             className="items-center justify-center mr-4"
@@ -102,18 +103,27 @@ export default function SubscriptionDetailScreen() {
               borderRadius: Radius.tag,
               borderWidth: 1,
               borderColor: Colors.fog,
+              overflow: "hidden",
             }}
           >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "700",
-                color: Colors.pitchBlack,
-                letterSpacing: 0.5,
-              }}
-            >
-              {subscription.initials}
-            </Text>
+            {subscription.logoUrl && !imageError ? (
+              <Image
+                source={{ uri: subscription.logoUrl }}
+                onError={() => setImageError(true)}
+                style={{ width: 34, height: 34, resizeMode: "contain" }}
+              />
+            ) : (
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: Colors.pitchBlack,
+                  letterSpacing: 0.5,
+                }}
+              >
+                {subscription.initials}
+              </Text>
+            )}
           </View>
 
           <View className="flex-1">

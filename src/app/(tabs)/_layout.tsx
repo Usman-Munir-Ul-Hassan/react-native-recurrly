@@ -11,7 +11,7 @@ export default function TabsLayout() {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: "#000000",
+                tabBarActiveTintColor: "#111827",
                 tabBarInactiveTintColor: "#8E8E93",
                 tabBarLabelStyle: {
                     fontSize: 10,
@@ -20,8 +20,8 @@ export default function TabsLayout() {
                     textTransform: "uppercase",
                 },
                 tabBarStyle: {
-                    backgroundColor: "#FFFFFF",
-                    borderTopColor: Colors.fog,
+                    backgroundColor: Colors.surface,
+                    borderTopColor: Colors.cardBorder,
                     borderTopWidth: 1,
                     height: 60 + insets.bottom,
                     paddingBottom: insets.bottom + 4,
@@ -39,7 +39,7 @@ export default function TabsLayout() {
                             <Ionicons
                                 name={focused ? tab.iconFocused : tab.iconUnfocused}
                                 size={22}
-                                color={color}
+                                color={String(color)}
                             />
                         ),
                     }}

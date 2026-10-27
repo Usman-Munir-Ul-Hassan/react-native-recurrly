@@ -8,6 +8,7 @@ import { MetricCard } from "@/components/subscription/metric-card";
 import { FilterDropdown } from "@/components/subscription/filter-dropdown";
 import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
+import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
 
 export default function SubscriptionsFeedScreen() {
   const router = useRouter();
@@ -16,22 +17,35 @@ export default function SubscriptionsFeedScreen() {
 
   const [selectedTab, setSelectedTab] = useState<TabType>("All");
 
-  // Filtered subscriptions calculation
+  // Upcoming renewals for the X-direction horizontal carousel
+  const upcomingSubs = [...subscriptions]
+    .filter((sub) => sub.status === "Active")
+    .sort((a, b) => {
+      const order = ["notion-team", "dropbox", "netflix", "claude-pro", "figma"];
+      const aIdx = order.indexOf(a.id);
+      const bIdx = order.indexOf(b.id);
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      if (aIdx !== -1) return -1;
+      if (bIdx !== -1) return 1;
+      return a.daysRemaining - b.daysRemaining;
+    });
+
+  // Filtered subscriptions calculation for vertical list
   const displayedSubscriptions = subscriptions.filter((sub) => {
     if (selectedTab === "Active") return sub.status === "Active";
     if (selectedTab === "Upcoming renewal") {
-      return sub.status === "Active" && sub.renewalDateShort.includes("Nov");
+      return sub.status === "Active" && sub.daysRemaining <= 14;
     }
     return true; // "All"
   });
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 40 }}
       >
-        {/* Top Clean Header: CHRONICLE (Left) <-----------------> JD Avatar (Right) */}
+        {/* Top Header: CHRONICLE (Left) <-----------------> JD Avatar (Right) */}
         <View className="flex-row items-center justify-between py-3 mb-2">
           <Text
             style={{
@@ -51,15 +65,15 @@ export default function SubscriptionsFeedScreen() {
               width: 34,
               height: 34,
               borderRadius: 17,
-              backgroundColor: Colors.cloud,
+              backgroundColor: Colors.badgeBg,
               borderWidth: 1,
-              borderColor: Colors.fog,
+              borderColor: Colors.badgeBorder,
             }}
           >
             <Text
               style={{
                 fontSize: 12,
-                fontWeight: "600",
+                fontWeight: "700",
                 color: Colors.pitchBlack,
               }}
             >
@@ -75,6 +89,57 @@ export default function SubscriptionsFeedScreen() {
           nextRenewalDate={nextRenewalDate}
         />
 
+        {/* Horizontal Carousel Section: Upcoming (X-Direction) */}
+        {upcomingSubs.length > 0 && (
+          <View className="mb-5">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: Colors.pitchBlack,
+                }}
+              >
+                Upcoming
+              </Text>
+              <Pressable
+                onPress={() => router.push("/(tabs)/subscription")}
+                style={{
+                  borderWidth: 1,
+                  borderColor: Colors.badgeBorder,
+                  borderRadius: 9999,
+                  paddingHorizontal: 14,
+                  paddingVertical: 5,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: Colors.pitchBlack,
+                  }}
+                >
+                  View all
+                </Text>
+              </Pressable>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: 8 }}
+            >
+              {upcomingSubs.map((item) => (
+                <HorizontalSubscriptionCard
+                  key={`upcoming-${item.id}`}
+                  subscription={item}
+                  onPress={() => router.push(`/details/${item.id}`)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Action & Filter Row: Dropdown (Left) <----------------> + Add Button (Right) */}
         <View
           style={{
@@ -82,6 +147,7 @@ export default function SubscriptionsFeedScreen() {
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: 12,
+            marginTop: 4,
           }}
         >
           {/* Unified Dropdown (All, Active, Upcoming) */}
@@ -94,10 +160,10 @@ export default function SubscriptionsFeedScreen() {
           <Pressable
             onPress={() => Alert.alert("Add Subscription", "Opening add commitment modal...")}
             style={{
-              backgroundColor: Colors.pitchBlack,
-              borderRadius: Radius.tag,
+              backgroundColor: Colors.action,
+              borderRadius: 9999,
               paddingVertical: 7,
-              paddingHorizontal: 14,
+              paddingHorizontal: 16,
             }}
           >
             <Text
@@ -112,7 +178,7 @@ export default function SubscriptionsFeedScreen() {
           </Pressable>
         </View>
 
-        {/* Subscriptions List */}
+        {/* Vertical Subscriptions List */}
         <View>
           {displayedSubscriptions.map((item) => (
             <SubscriptionCard

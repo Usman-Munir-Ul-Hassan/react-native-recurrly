@@ -16,17 +16,15 @@ export function MetricCard({
   return (
     <View
       style={{
-        backgroundColor: Colors.cloud,
+        backgroundColor: Colors.surface,
         borderWidth: 1,
-        borderColor: Colors.fog,
-        borderRadius: Radius.card,
+        borderColor: Colors.cardBorder,
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 36,
+        borderBottomRightRadius: 18,
+        borderBottomLeftRadius: 36,
         padding: 18,
-        marginBottom: 12,
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 2,
-        elevation: 1,
+        marginBottom: 16,
       }}
     >
       {/* Top Label */}
@@ -72,7 +70,7 @@ export function MetricCard({
         </Text>
       </View>
 
-      {/* Bottom Badges Row: 8 Active (Left) <-----------------> Next Renewal (Right) */}
+      {/* Bottom Badges Row: Active (Left) <-----------------> Next Renewal (Right) */}
       <View
         style={{
           flexDirection: "row",
@@ -85,25 +83,27 @@ export function MetricCard({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: Colors.limestone,
-            borderRadius: Radius.tag,
+            backgroundColor: Colors.badgeBg,
+            borderWidth: 1,
+            borderColor: Colors.badgeBorder,
+            borderRadius: 9999,
             paddingVertical: 5,
-            paddingHorizontal: 10,
+            paddingHorizontal: 12,
           }}
         >
           <View
             style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: "#16A34A",
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: Colors.liveDot,
               marginRight: 6,
             }}
           />
           <Text
             style={{
               fontSize: 12,
-              fontWeight: "600",
+              fontWeight: "700",
               color: Colors.pitchBlack,
             }}
           >
@@ -114,17 +114,19 @@ export function MetricCard({
         {/* Next Renewal Badge */}
         <View
           style={{
-            backgroundColor: Colors.limestone,
-            borderRadius: Radius.tag,
+            backgroundColor: Colors.badgeBg,
+            borderWidth: 1,
+            borderColor: Colors.badgeBorder,
+            borderRadius: 9999,
             paddingVertical: 5,
-            paddingHorizontal: 10,
+            paddingHorizontal: 12,
           }}
         >
           <Text
             style={{
               fontSize: 12,
-              fontWeight: "500",
-              color: Colors.graphite,
+              fontWeight: "600",
+              color: Colors.charcoal,
             }}
           >
             Next: {nextRenewalDate}
