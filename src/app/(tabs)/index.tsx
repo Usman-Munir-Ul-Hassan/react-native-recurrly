@@ -2,7 +2,8 @@ import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Colors, Radius } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
 import { AppHeader } from "@/components/navigation/app-header";
 import { MetricCard } from "@/components/subscription/metric-card";
@@ -11,7 +12,6 @@ import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
 import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
-import { SearchInput } from "@/components/subscription/search-input";
 import { filterSubscriptions } from "@/utils/subscription-filter";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
@@ -27,7 +27,6 @@ export default function SubscriptionsFeedScreen() {
   } = useSubscriptions();
 
   const [selectedTab, setSelectedTab] = useState<TabType>("All");
-  const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Upcoming renewals for the X-direction horizontal carousel
@@ -43,10 +42,10 @@ export default function SubscriptionsFeedScreen() {
       return a.daysRemaining - b.daysRemaining;
     });
 
-  // Filtered subscriptions calculation for vertical list combining tab & search
+  // Filtered subscriptions calculation for vertical list
   const displayedSubscriptions = useMemo(
-    () => filterSubscriptions(subscriptions, selectedTab, searchQuery),
-    [subscriptions, selectedTab, searchQuery]
+    () => filterSubscriptions(subscriptions, selectedTab, ""),
+    [subscriptions, selectedTab]
   );
 
   return (
@@ -116,12 +115,33 @@ export default function SubscriptionsFeedScreen() {
           </View>
         )}
 
-        {/* Search Input Bar */}
-        <SearchInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search subscriptions by name or category..."
-        />
+        {/* Search Trigger Bar: Tapping navigates to dedicated /search screen */}
+        <Pressable
+          onPress={() => router.push("/search")}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#FAF9F6",
+            borderWidth: 1,
+            borderColor: Colors.fog,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            marginBottom: 12,
+          }}
+          accessibilityLabel="Open search subscriptions screen"
+          testID="btn-open-search"
+        >
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={Colors.graphite}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={{ fontSize: 14, color: Colors.ash, flex: 1 }}>
+            Search subscriptions by name or category...
+          </Text>
+        </Pressable>
 
         {/* Action & Filter Row: Dropdown (Left) <----------------> + Add Button (Right) */}
         <View
@@ -173,39 +193,9 @@ export default function SubscriptionsFeedScreen() {
 
           {displayedSubscriptions.length === 0 && (
             <View className="py-10 items-center justify-center">
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: Colors.pitchBlack,
-                  marginBottom: 4,
-                }}
-              >
-                {searchQuery ? "No matching subscriptions" : "No subscriptions found"}
+              <Text style={{ fontSize: 13, color: Colors.graphite }}>
+                No subscriptions found in this category.
               </Text>
-              <Text style={{ fontSize: 13, color: Colors.graphite, marginBottom: searchQuery ? 12 : 0 }}>
-                {searchQuery
-                  ? `No subscriptions match "${searchQuery}".`
-                  : "No subscriptions in this category."}
-              </Text>
-
-              {Boolean(searchQuery) && (
-                <Pressable
-                  onPress={() => setSearchQuery("")}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 14,
-                    borderRadius: Radius.button,
-                    borderWidth: 1,
-                    borderColor: Colors.fog,
-                    backgroundColor: Colors.cloud,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: Colors.pitchBlack }}>
-                    Clear search
-                  </Text>
-                </Pressable>
-              )}
             </View>
           )}
         </View>
