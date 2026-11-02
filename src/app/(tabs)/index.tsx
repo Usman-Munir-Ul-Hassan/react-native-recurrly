@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Colors } from "@/constants/theme";
+import { Colors, Radius } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
 import { AppHeader } from "@/components/navigation/app-header";
 import { MetricCard } from "@/components/subscription/metric-card";
@@ -11,6 +11,8 @@ import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
 import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
+import { SearchInput } from "@/components/subscription/search-input";
+import { filterSubscriptions } from "@/utils/subscription-filter";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function SubscriptionsFeedScreen() {
@@ -25,6 +27,7 @@ export default function SubscriptionsFeedScreen() {
   } = useSubscriptions();
 
   const [selectedTab, setSelectedTab] = useState<TabType>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Upcoming renewals for the X-direction horizontal carousel
@@ -40,14 +43,11 @@ export default function SubscriptionsFeedScreen() {
       return a.daysRemaining - b.daysRemaining;
     });
 
-  // Filtered subscriptions calculation for vertical list
-  const displayedSubscriptions = subscriptions.filter((sub) => {
-    if (selectedTab === "Active") return sub.status === "Active";
-    if (selectedTab === "Upcoming renewal") {
-      return sub.status === "Active" && sub.daysRemaining <= 14;
-    }
-    return true; // "All"
-  });
+  // Filtered subscriptions calculation for vertical list combining tab & search
+  const displayedSubscriptions = useMemo(
+    () => filterSubscriptions(subscriptions, selectedTab, searchQuery),
+    [subscriptions, selectedTab, searchQuery]
+  );
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
@@ -116,6 +116,13 @@ export default function SubscriptionsFeedScreen() {
           </View>
         )}
 
+        {/* Search Input Bar */}
+        <SearchInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search subscriptions by name or category..."
+        />
+
         {/* Action & Filter Row: Dropdown (Left) <----------------> + Add Button (Right) */}
         <View
           style={{
@@ -166,9 +173,39 @@ export default function SubscriptionsFeedScreen() {
 
           {displayedSubscriptions.length === 0 && (
             <View className="py-10 items-center justify-center">
-              <Text style={{ fontSize: 13, color: Colors.graphite }}>
-                No subscriptions found in this category.
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: Colors.pitchBlack,
+                  marginBottom: 4,
+                }}
+              >
+                {searchQuery ? "No matching subscriptions" : "No subscriptions found"}
               </Text>
+              <Text style={{ fontSize: 13, color: Colors.graphite, marginBottom: searchQuery ? 12 : 0 }}>
+                {searchQuery
+                  ? `No subscriptions match "${searchQuery}".`
+                  : "No subscriptions in this category."}
+              </Text>
+
+              {Boolean(searchQuery) && (
+                <Pressable
+                  onPress={() => setSearchQuery("")}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    borderRadius: Radius.button,
+                    borderWidth: 1,
+                    borderColor: Colors.fog,
+                    backgroundColor: Colors.cloud,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "500", color: Colors.pitchBlack }}>
+                    Clear search
+                  </Text>
+                </Pressable>
+              )}
             </View>
           )}
         </View>

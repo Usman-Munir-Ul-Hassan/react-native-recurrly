@@ -36,3 +36,9 @@ jest.mock("expo-web-browser", () => ({
   warmUpAsync: jest.fn().mockResolvedValue(undefined),
   coolDownAsync: jest.fn().mockResolvedValue(undefined),
 }));
+
+// Mock @expo/vector-icons
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: "Ionicons",
+  Feather: "Feather",
+}));
