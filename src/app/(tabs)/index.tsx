@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
 import { AppHeader } from "@/components/navigation/app-header";
@@ -11,9 +12,12 @@ import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
 import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
+import { filterSubscriptions } from "@/utils/subscription-filter";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function SubscriptionsFeedScreen() {
   const router = useRouter();
+  const { email } = useUserProfile();
   const {
     subscriptions,
     activeCount,
@@ -39,13 +43,10 @@ export default function SubscriptionsFeedScreen() {
     });
 
   // Filtered subscriptions calculation for vertical list
-  const displayedSubscriptions = subscriptions.filter((sub) => {
-    if (selectedTab === "Active") return sub.status === "Active";
-    if (selectedTab === "Upcoming renewal") {
-      return sub.status === "Active" && sub.daysRemaining <= 14;
-    }
-    return true; // "All"
-  });
+  const displayedSubscriptions = useMemo(
+    () => filterSubscriptions(subscriptions, selectedTab, ""),
+    [subscriptions, selectedTab]
+  );
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
@@ -114,6 +115,34 @@ export default function SubscriptionsFeedScreen() {
           </View>
         )}
 
+        {/* Search Trigger Bar: Tapping navigates to dedicated /search screen */}
+        <Pressable
+          onPress={() => router.push("/search")}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#FAF9F6",
+            borderWidth: 1,
+            borderColor: Colors.fog,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            marginBottom: 12,
+          }}
+          accessibilityLabel="Open search subscriptions screen"
+          testID="btn-open-search"
+        >
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={Colors.graphite}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={{ fontSize: 14, color: Colors.ash, flex: 1 }}>
+            Search subscriptions by name or category...
+          </Text>
+        </Pressable>
+
         {/* Action & Filter Row: Dropdown (Left) <----------------> + Add Button (Right) */}
         <View
           style={{
@@ -176,6 +205,7 @@ export default function SubscriptionsFeedScreen() {
           visible={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onAdd={addSubscription}
+          userEmail={email}
         />
       </ScrollView>
     </SafeAreaView>

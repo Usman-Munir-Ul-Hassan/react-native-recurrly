@@ -3,54 +3,15 @@ import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, Radius } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
+import { usePreferences } from "@/context/preferences-context";
+import { calculateAnalytics } from "@/services/subscription/analytics-calculator";
 
 export default function AnalyticsScreen() {
-  const { subscriptions, activeCount, totalMonthlyAmount } = useSubscriptions();
+  const { subscriptions } = useSubscriptions();
+  const { currencySymbol } = usePreferences();
 
-  // Active subscriptions calculation
-  const activeSubs = useMemo(
-    () => subscriptions.filter((s) => s.status === "Active"),
-    [subscriptions]
-  );
-
-  // Numeric monthly total
-  const numericMonthlyTotal = useMemo(() => {
-    return activeSubs.reduce((sum, item) => {
-      const num = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0;
-      return sum + num;
-    }, 0);
-  }, [activeSubs]);
-
-  // Projected Annual Spend
-  const annualTotal = (numericMonthlyTotal * 12).toFixed(2);
-  const averagePerSub =
-    activeCount > 0 ? (numericMonthlyTotal / activeCount).toFixed(2) : "0.00";
-
-  // Category breakdown calculation
-  const categoryBreakdown = useMemo(() => {
-    const map: Record<string, { total: number; count: number }> = {};
-
-    activeSubs.forEach((sub) => {
-      const num = parseFloat(sub.price.replace(/[^0-9.]/g, "")) || 0;
-      if (!map[sub.category]) {
-        map[sub.category] = { total: 0, count: 0 };
-      }
-      map[sub.category].total += num;
-      map[sub.category].count += 1;
-    });
-
-    return Object.entries(map)
-      .map(([category, data]) => ({
-        category,
-        total: data.total,
-        count: data.count,
-        percentage:
-          numericMonthlyTotal > 0
-            ? Math.round((data.total / numericMonthlyTotal) * 100)
-            : 0,
-      }))
-      .sort((a, b) => b.total - a.total);
-  }, [activeSubs, numericMonthlyTotal]);
+  // All financial calculations delegated to pure analytics engine
+  const stats = useMemo(() => calculateAnalytics(subscriptions), [subscriptions]);
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
@@ -72,7 +33,7 @@ export default function AnalyticsScreen() {
             Analytics
           </Text>
           <Text style={{ fontSize: 13, color: Colors.graphite, marginTop: 2 }}>
-            Spending breakdown and category distribution
+            Real-time financial projections and category distribution
           </Text>
         </View>
 
@@ -92,14 +53,7 @@ export default function AnalyticsScreen() {
             elevation: 1,
           }}
         >
-          <Text
-            style={{
-              fontSize: 13,
-              color: Colors.graphite,
-              fontWeight: "500",
-              marginBottom: 6,
-            }}
-          >
+          <Text style={{ fontSize: 13, color: Colors.graphite, fontWeight: "500", marginBottom: 6 }}>
             Projected Annual Spend
           </Text>
 
@@ -113,14 +67,14 @@ export default function AnalyticsScreen() {
                 fontVariant: ["tabular-nums"],
               }}
             >
-              ${annualTotal}
+              {currencySymbol}{stats.annualTotal.toFixed(2)}
             </Text>
             <Text style={{ fontSize: 14, color: Colors.graphite, marginLeft: 6 }}>
               / year
             </Text>
           </View>
 
-          {/* Quick Metrics: 3 Dedicated Equal Columns with Dividers */}
+          {/* Quick Metrics: 3 Dedicated Columns */}
           <View
             style={{
               flexDirection: "row",
@@ -131,7 +85,7 @@ export default function AnalyticsScreen() {
               borderTopColor: Colors.fog,
             }}
           >
-            {/* Metric 1 */}
+            {/* Metric 1: Monthly Total */}
             <View style={{ flex: 1 }}>
               <Text numberOfLines={1} style={{ fontSize: 11, color: Colors.graphite, marginBottom: 2 }}>
                 Monthly
@@ -145,14 +99,13 @@ export default function AnalyticsScreen() {
                   fontVariant: ["tabular-nums"],
                 }}
               >
-                {totalMonthlyAmount}
+                {currencySymbol}{stats.monthlyTotal.toFixed(2)}
               </Text>
             </View>
 
-            {/* Hairline Divider */}
             <View style={{ width: 1, height: 26, backgroundColor: Colors.fog, marginHorizontal: 8 }} />
 
-            {/* Metric 2 */}
+            {/* Metric 2: Average Per Sub */}
             <View style={{ flex: 1, alignItems: "center" }}>
               <Text numberOfLines={1} style={{ fontSize: 11, color: Colors.graphite, marginBottom: 2 }}>
                 Avg / Sub
@@ -166,14 +119,13 @@ export default function AnalyticsScreen() {
                   fontVariant: ["tabular-nums"],
                 }}
               >
-                ${averagePerSub}
+                {currencySymbol}{stats.averagePerSub.toFixed(2)}
               </Text>
             </View>
 
-            {/* Hairline Divider */}
             <View style={{ width: 1, height: 26, backgroundColor: Colors.fog, marginHorizontal: 8 }} />
 
-            {/* Metric 3 */}
+            {/* Metric 3: Active Count */}
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <Text numberOfLines={1} style={{ fontSize: 11, color: Colors.graphite, marginBottom: 2 }}>
                 Active
@@ -186,11 +138,127 @@ export default function AnalyticsScreen() {
                   color: Colors.pitchBlack,
                 }}
               >
-                {activeCount} Services
+                {stats.activeCount} Services
               </Text>
             </View>
           </View>
         </View>
+
+        {/* Status Distribution & Savings Card */}
+        <View
+          style={{
+            backgroundColor: Colors.cloud,
+            borderWidth: 1,
+            borderColor: Colors.fog,
+            borderRadius: Radius.card,
+            padding: 16,
+            marginBottom: 14,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: Colors.pitchBlack,
+              textTransform: "uppercase",
+              letterSpacing: 0.8,
+              marginBottom: 12,
+            }}
+          >
+            Portfolio Status
+          </Text>
+
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+            <View>
+              <Text style={{ fontSize: 11, color: Colors.graphite }}>Active</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.pitchBlack }}>{stats.activeCount}</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 11, color: Colors.graphite }}>Paused</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#d97706" }}>{stats.pausedCount}</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 11, color: Colors.graphite }}>Cancelled</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#dc2626" }}>{stats.cancelledCount}</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 11, color: Colors.graphite }}>Total</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.pitchBlack }}>{stats.totalCount}</Text>
+            </View>
+          </View>
+
+          {stats.monthlySavings > 0 ? (
+            <View
+              style={{
+                backgroundColor: "#F0FDF4",
+                borderWidth: 1,
+                borderColor: "#BBF7D0",
+                borderRadius: Radius.tag,
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+              }}
+            >
+              <Text style={{ fontSize: 12, color: "#166534", fontWeight: "600" }}>
+                ✓ Saving {currencySymbol}{stats.monthlySavings.toFixed(2)}/mo on paused & cancelled services
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Highlights: Top Expense & Due Soon */}
+        {stats.topExpense || stats.upcomingRenewalsCount > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 10,
+              marginBottom: 14,
+            }}
+          >
+            {stats.topExpense ? (
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: Colors.cloud,
+                  borderWidth: 1,
+                  borderColor: Colors.fog,
+                  borderRadius: Radius.card,
+                  padding: 14,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: Colors.graphite, textTransform: "uppercase", fontWeight: "600" }}>
+                  Top Expense
+                </Text>
+                <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: Colors.pitchBlack, marginTop: 4 }}>
+                  {stats.topExpense.name}
+                </Text>
+                <Text style={{ fontSize: 12, color: Colors.graphite, marginTop: 2 }}>
+                  {currencySymbol}{stats.topExpense.amount.toFixed(2)}/mo
+                </Text>
+              </View>
+            ) : null}
+
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: Colors.cloud,
+                borderWidth: 1,
+                borderColor: Colors.fog,
+                borderRadius: Radius.card,
+                padding: 14,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: Colors.graphite, textTransform: "uppercase", fontWeight: "600" }}>
+                Due in 7 Days
+              </Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.pitchBlack, marginTop: 4 }}>
+                {stats.upcomingRenewalsCount} {stats.upcomingRenewalsCount === 1 ? "Renewal" : "Renewals"}
+              </Text>
+              <Text style={{ fontSize: 12, color: Colors.graphite, marginTop: 2 }}>
+                Upcoming cycle
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* Category Breakdown Section */}
         <View
@@ -201,16 +269,11 @@ export default function AnalyticsScreen() {
             borderRadius: Radius.card,
             padding: 16,
             marginBottom: 14,
-            shadowColor: "#000000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.04,
-            shadowRadius: 2,
-            elevation: 1,
           }}
         >
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: "700",
               color: Colors.pitchBlack,
               textTransform: "uppercase",
@@ -221,79 +284,78 @@ export default function AnalyticsScreen() {
             Spending by Category
           </Text>
 
-          {categoryBreakdown.map((item, index) => (
-            <View
-              key={item.category}
-              style={{
-                marginBottom: index < categoryBreakdown.length - 1 ? 16 : 0,
-              }}
-            >
-              {/* Category Name & Amount */}
+          {stats.categoryBreakdown.length === 0 ? (
+            <Text style={{ fontSize: 13, color: Colors.graphite, textAlign: "center", paddingVertical: 12 }}>
+              No active subscriptions found.
+            </Text>
+          ) : (
+            stats.categoryBreakdown.map((item, index) => (
               <View
+                key={item.category}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 6,
-                }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: Colors.pitchBlack,
-                    flex: 1,
-                    marginRight: 8,
-                  }}
-                >
-                  {item.category}
-                </Text>
-
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: Colors.pitchBlack,
-                      fontVariant: ["tabular-nums"],
-                    }}
-                  >
-                    ${item.total.toFixed(2)}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: Colors.graphite,
-                      marginLeft: 6,
-                    }}
-                  >
-                    ({item.percentage}%)
-                  </Text>
-                </View>
-              </View>
-
-              {/* High-Contrast Visible Progress Bar Track */}
-              <View
-                style={{
-                  height: 6,
-                  width: "100%",
-                  backgroundColor: "#EBEBEB",
-                  borderRadius: 3,
-                  overflow: "hidden",
+                  marginBottom: index < stats.categoryBreakdown.length - 1 ? 16 : 0,
                 }}
               >
                 <View
                   style={{
-                    height: "100%",
-                    width: `${item.percentage}%`,
-                    backgroundColor: Colors.pitchBlack,
-                    borderRadius: 3,
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 6,
                   }}
-                />
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: Colors.pitchBlack,
+                      flex: 1,
+                      marginRight: 8,
+                    }}
+                  >
+                    {item.category}
+                  </Text>
+
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: Colors.pitchBlack,
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
+                      {currencySymbol}{item.total.toFixed(2)}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: Colors.graphite, marginLeft: 6 }}>
+                      ({item.percentage}%)
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Progress Bar Track */}
+                <View
+                  style={{
+                    height: 6,
+                    width: "100%",
+                    backgroundColor: "#EBEBEB",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <View
+                    style={{
+                      height: "100%",
+                      width: `${item.percentage}%`,
+                      backgroundColor: Colors.pitchBlack,
+                      borderRadius: 3,
+                    }}
+                  />
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

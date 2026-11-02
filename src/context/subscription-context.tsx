@@ -6,6 +6,8 @@ import {
     loadSubscriptionsFromUser,
     saveSubscriptionsToUser,
 } from "@/services/subscription/clerk-subscription-storage";
+import { useRenewalNotifications } from "@/hooks/use-renewal-notifications";
+import { usePreferences } from "@/context/preferences-context";
 
 interface SubscriptionContextType {
     subscriptions: Subscription[];
@@ -16,6 +18,8 @@ interface SubscriptionContextType {
     getSubscription: (id: string) => Subscription | undefined;
     cancelSubscription: (id: string) => void;
     pauseSubscription: (id: string) => void;
+    resumeSubscription: (id: string) => void;
+    deleteSubscription: (id: string) => void;
     addSubscription: (newSub: Subscription) => void;
 }
 
@@ -49,6 +53,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
         return MOCK_SUBSCRIPTIONS;
     }, [activeOverride, isUserLoaded, user]);
+
+    const { alertsEnabled } = usePreferences();
+
+    // Automatically monitors subscriptions and schedules/dispatches 1-day alerts if enabled
+    useRenewalNotifications(subscriptions, { enabled: alertsEnabled });
 
     // Active subscriptions count and total monthly price calculated dynamically
     const activeSubs = useMemo(
@@ -99,6 +108,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         void updateAndSync(updated);
     };
 
+    const resumeSubscription = (id: string) => {
+        const updated = subscriptions.map((sub) =>
+            sub.id === id ? { ...sub, status: "Active" as const } : sub
+        );
+        void updateAndSync(updated);
+    };
+
+    const deleteSubscription = (id: string) => {
+        const updated = subscriptions.filter((sub) => sub.id !== id);
+        void updateAndSync(updated);
+    };
+
     const addSubscription = (newSub: Subscription) => {
         const updated = [newSub, ...subscriptions];
         void updateAndSync(updated);
@@ -115,6 +136,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
                 getSubscription,
                 cancelSubscription,
                 pauseSubscription,
+                resumeSubscription,
+                deleteSubscription,
                 addSubscription,
             }}
         >

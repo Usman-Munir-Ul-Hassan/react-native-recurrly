@@ -69,6 +69,7 @@ describe("subscription-form-validator", () => {
 
       expect(sub.name).toBe("Linear");
       expect(sub.initials).toBe("LI");
+      expect(sub.logoUrl).toBe("https://www.google.com/s2/favicons?domain=linear.app&sz=128");
       expect(sub.category).toBe("Dev Tools");
       expect(sub.amountNumeric).toBe(12.0);
       expect(sub.price).toBe("$12.00/mo");
@@ -78,6 +79,24 @@ describe("subscription-form-validator", () => {
       expect(sub.nextRenewalFull).toContain("December 1, 2026");
       expect(sub.billingCycle).toBe("Monthly (renews automatically)");
       expect(sub.id).toMatch(/^sub-\d+-linear$/);
+    });
+
+    it("builds yearly subscription with 365 days and /yr suffix", () => {
+      const customDate = new Date(2026, 0, 1); // Jan 1, 2026
+      const sub = buildNewSubscription(
+        {
+          name: "Annual Cloud",
+          price: "120.00",
+          category: "Dev Tools",
+          billingCadence: "Yearly",
+          currencySymbol: "€",
+        },
+        { customDate }
+      );
+
+      expect(sub.price).toBe("€120.00/yr");
+      expect(sub.daysRemaining).toBe(365);
+      expect(sub.billingCycle).toBe("Yearly (renews automatically)");
     });
   });
 });
