@@ -83,4 +83,60 @@ describe("SubscriptionContext", () => {
         expect(result.current.subscriptions.length).toBe(initialCount + 1);
         expect(result.current.subscriptions[0].id).toBe("custom-spotify-test");
     });
+
+    it("should not leak localOverride across sign-out or account switch", async () => {
+        let currentUser: any = {
+            id: "user_alice",
+            unsafeMetadata: { subscriptions: [] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        (useUser as jest.Mock).mockImplementation(() => ({
+            isLoaded: true,
+            user: currentUser,
+        }));
+
+        const { result, rerender } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        const aliceSub: Subscription = {
+            id: "alice-exclusive-sub",
+            name: "Alice Sub",
+            initials: "AS",
+            status: "Active",
+            category: "Dev Tools",
+            price: "$5.00/mo",
+            amountNumeric: 5.0,
+            cadence: "in 5 days",
+            daysRemaining: 5,
+            renewalDateShort: "Renews Nov 5",
+            nextRenewalFull: "November 5, 2026",
+            billingCycle: "Monthly",
+            paymentMethod: "Card",
+            invoiceEmail: "alice@example.com",
+        };
+
+        await act(async () => {
+            result.current.addSubscription(aliceSub);
+        });
+
+        // Alice sees her new subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(true);
+
+        // Alice signs out (user becomes null)
+        currentUser = null;
+        await rerender({});
+
+        // Logged-out session must NOT see Alice's subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(false);
+
+        // Bob signs in
+        currentUser = {
+            id: "user_bob",
+            unsafeMetadata: { subscriptions: [] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        await rerender({});
+
+        // Bob must NOT see Alice's subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(false);
+    });
 });

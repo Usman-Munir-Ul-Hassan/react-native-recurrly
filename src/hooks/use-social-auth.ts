@@ -52,8 +52,8 @@ export function useSocialAuth() {
                 });
 
                 console.log(`[SocialAuth] SSO flow result:`, {
-                    createdSessionId,
-                    hasSetActive: !!setActive,
+                    hasSessionId: Boolean(createdSessionId),
+                    hasSetActive: Boolean(setActive),
                     signInStatus: signIn?.status,
                     signUpStatus: signUp?.status,
                 });

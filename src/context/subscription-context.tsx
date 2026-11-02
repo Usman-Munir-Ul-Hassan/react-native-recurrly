@@ -23,19 +23,27 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user, isLoaded: isUserLoaded } = useUser();
-    const [localOverride, setLocalOverride] = useState<Subscription[] | null>(null);
+    const currentUserId = user?.id ?? null;
+    const [overrideState, setOverrideState] = useState<{
+        userId: string | null;
+        subscriptions: Subscription[];
+    } | null>(null);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-    // Compute active subscription list: local optimistic updates take precedence over cloud metadata
+    // Only apply local override if it belongs to the currently active user (avoids cross-account leaks)
+    const activeOverride =
+        overrideState?.userId === currentUserId ? overrideState.subscriptions : null;
+
+    // Compute active subscription list: scoped local updates take precedence over cloud metadata
     const subscriptions = useMemo(() => {
-        if (localOverride !== null) {
-            return localOverride;
+        if (activeOverride !== null) {
+            return activeOverride;
         }
         if (isUserLoaded && user) {
             return loadSubscriptionsFromUser(user);
         }
         return MOCK_SUBSCRIPTIONS;
-    }, [localOverride, isUserLoaded, user]);
+    }, [activeOverride, isUserLoaded, user]);
 
     // Active subscriptions count and total monthly price calculated dynamically
     const activeSubs = useMemo(
@@ -59,9 +67,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return subscriptions.find((sub) => sub.id === id);
     };
 
-    // Helper to optimistically update local state and sync to Clerk cloud
+    // Helper to optimistically update local state scoped to user and sync to Clerk cloud
     const updateAndSync = async (updated: Subscription[]) => {
-        setLocalOverride(updated);
+        setOverrideState({
+            userId: currentUserId,
+            subscriptions: updated,
+        });
         if (user) {
             setIsSyncing(true);
             await saveSubscriptionsToUser(user, updated);
