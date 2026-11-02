@@ -16,6 +16,8 @@ interface SubscriptionContextType {
     getSubscription: (id: string) => Subscription | undefined;
     cancelSubscription: (id: string) => void;
     pauseSubscription: (id: string) => void;
+    resumeSubscription: (id: string) => void;
+    deleteSubscription: (id: string) => void;
     addSubscription: (newSub: Subscription) => void;
 }
 
@@ -99,6 +101,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         void updateAndSync(updated);
     };
 
+    const resumeSubscription = (id: string) => {
+        const updated = subscriptions.map((sub) =>
+            sub.id === id ? { ...sub, status: "Active" as const } : sub
+        );
+        void updateAndSync(updated);
+    };
+
+    const deleteSubscription = (id: string) => {
+        const updated = subscriptions.filter((sub) => sub.id !== id);
+        void updateAndSync(updated);
+    };
+
     const addSubscription = (newSub: Subscription) => {
         const updated = [newSub, ...subscriptions];
         void updateAndSync(updated);
@@ -115,6 +129,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
                 getSubscription,
                 cancelSubscription,
                 pauseSubscription,
+                resumeSubscription,
+                deleteSubscription,
                 addSubscription,
             }}
         >

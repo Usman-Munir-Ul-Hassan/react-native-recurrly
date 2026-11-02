@@ -55,6 +55,34 @@ describe("SubscriptionContext", () => {
         expect(updated?.status).toBe("Paused");
     });
 
+    it("should resume a paused subscription", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const targetId = result.current.subscriptions[0].id;
+
+        await act(async () => {
+            result.current.pauseSubscription(targetId);
+        });
+        expect(result.current.getSubscription(targetId)?.status).toBe("Paused");
+
+        await act(async () => {
+            result.current.resumeSubscription(targetId);
+        });
+        expect(result.current.getSubscription(targetId)?.status).toBe("Active");
+    });
+
+    it("should delete a subscription permanently", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const initialCount = result.current.subscriptions.length;
+        const targetId = result.current.subscriptions[0].id;
+
+        await act(async () => {
+            result.current.deleteSubscription(targetId);
+        });
+
+        expect(result.current.subscriptions.length).toBe(initialCount - 1);
+        expect(result.current.getSubscription(targetId)).toBeUndefined();
+    });
+
     it("should add a new subscription to the list", async () => {
         const { result } = await renderHook(() => useSubscriptions(), { wrapper });
         const initialCount = result.current.subscriptions.length;

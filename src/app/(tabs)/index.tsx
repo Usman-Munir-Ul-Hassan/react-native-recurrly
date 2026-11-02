@@ -11,9 +11,11 @@ import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
 import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function SubscriptionsFeedScreen() {
   const router = useRouter();
+  const { email } = useUserProfile();
   const {
     subscriptions,
     activeCount,
@@ -176,6 +178,7 @@ export default function SubscriptionsFeedScreen() {
           visible={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onAdd={addSubscription}
+          userEmail={email}
         />
       </ScrollView>
     </SafeAreaView>

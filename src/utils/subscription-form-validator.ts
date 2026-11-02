@@ -105,7 +105,7 @@ export function buildNewSubscription(
     renewalDateShort: `Renews ${formatShortDate(renewalDate)}`,
     nextRenewalFull: `${formatFullDate(renewalDate)} (in ${daysRemaining} days)`,
     billingCycle: input.billingCycle || "Monthly (renews automatically)",
-    paymentMethod: input.paymentMethod || "Default Card •••• 4242",
-    invoiceEmail: input.invoiceEmail || "alex@example.com",
+    paymentMethod: input.paymentMethod || "Apple Pay",
+    invoiceEmail: input.invoiceEmail || "user@chronicle.app",
   };
 }
