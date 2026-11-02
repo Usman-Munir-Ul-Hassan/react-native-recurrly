@@ -6,6 +6,8 @@ import {
     loadSubscriptionsFromUser,
     saveSubscriptionsToUser,
 } from "@/services/subscription/clerk-subscription-storage";
+import { useRenewalNotifications } from "@/hooks/use-renewal-notifications";
+import { usePreferences } from "@/context/preferences-context";
 
 interface SubscriptionContextType {
     subscriptions: Subscription[];
@@ -51,6 +53,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
         return MOCK_SUBSCRIPTIONS;
     }, [activeOverride, isUserLoaded, user]);
+
+    const { alertsEnabled } = usePreferences();
+
+    // Automatically monitors subscriptions and schedules/dispatches 1-day alerts if enabled
+    useRenewalNotifications(subscriptions, { enabled: alertsEnabled });
 
     // Active subscriptions count and total monthly price calculated dynamically
     const activeSubs = useMemo(

@@ -19,6 +19,7 @@ import {
 } from "@/utils/subscription-form-validator";
 import { resolveBrandIconUrl } from "@/services/subscription/brand-icon-service";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
+import { usePreferences } from "@/context/preferences-context";
 
 const CATEGORIES = [
   "Dev Tools",
@@ -50,8 +51,10 @@ export function AddSubscriptionModal({
   onAdd,
   userEmail,
 }: AddSubscriptionModalProps) {
+  const { currencySymbol } = usePreferences();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [cadence, setCadence] = useState<"Monthly" | "Yearly">("Monthly");
   const [category, setCategory] = useState("Dev Tools");
   const [paymentMethod, setPaymentMethod] = useState("Apple Pay");
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
@@ -62,6 +65,7 @@ export function AddSubscriptionModal({
   const handleClose = () => {
     setName("");
     setPrice("");
+    setCadence("Monthly");
     setCategory("Dev Tools");
     setPaymentMethod("Apple Pay");
     setErrors({});
@@ -80,6 +84,8 @@ export function AddSubscriptionModal({
       name,
       price,
       category,
+      billingCadence: cadence,
+      currencySymbol,
       paymentMethod,
       invoiceEmail: realUserEmail,
       logoUrl: iconPreviewUrl,
@@ -235,6 +241,53 @@ export function AddSubscriptionModal({
                 )}
               </View>
 
+              {/* Billing Cadence Selector */}
+              <View style={{ marginBottom: 14 }}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: Colors.graphite,
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                    marginBottom: 6,
+                  }}
+                >
+                  Billing Cycle
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {(["Monthly", "Yearly"] as const).map((cycle) => {
+                    const isSelected = cadence === cycle;
+                    return (
+                      <Pressable
+                        key={cycle}
+                        onPress={() => setCadence(cycle)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 9,
+                          borderRadius: Radius.tag,
+                          borderWidth: 1,
+                          borderColor: isSelected ? Colors.pitchBlack : Colors.fog,
+                          backgroundColor: isSelected ? Colors.pitchBlack : "#FAF9F6",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: "600",
+                            color: isSelected ? "#FFFFFF" : Colors.pitchBlack,
+                          }}
+                        >
+                          {cycle} {cycle === "Yearly" ? "(1 Year)" : "(30 Days)"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
               {/* Price Input */}
               <View style={{ marginBottom: 14 }}>
                 <Text
@@ -247,7 +300,7 @@ export function AddSubscriptionModal({
                     marginBottom: 6,
                   }}
                 >
-                  Monthly Price ($)
+                  {cadence === "Yearly" ? "Yearly Price" : "Monthly Price"} ({currencySymbol})
                 </Text>
                 <TextInput
                   value={price}

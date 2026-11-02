@@ -80,5 +80,23 @@ describe("subscription-form-validator", () => {
       expect(sub.billingCycle).toBe("Monthly (renews automatically)");
       expect(sub.id).toMatch(/^sub-\d+-linear$/);
     });
+
+    it("builds yearly subscription with 365 days and /yr suffix", () => {
+      const customDate = new Date(2026, 0, 1); // Jan 1, 2026
+      const sub = buildNewSubscription(
+        {
+          name: "Annual Cloud",
+          price: "120.00",
+          category: "Dev Tools",
+          billingCadence: "Yearly",
+          currencySymbol: "€",
+        },
+        { customDate }
+      );
+
+      expect(sub.price).toBe("€120.00/yr");
+      expect(sub.daysRemaining).toBe(365);
+      expect(sub.billingCycle).toBe("Yearly (renews automatically)");
+    });
   });
 });

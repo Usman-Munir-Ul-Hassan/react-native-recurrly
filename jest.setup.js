@@ -42,3 +42,13 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: "Ionicons",
   Feather: "Feather",
 }));
+
+// Mock expo-notifications
+jest.mock("expo-notifications", () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  scheduleNotificationAsync: jest.fn().mockResolvedValue("mock-notification-id"),
+  cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
+  dismissNotificationAsync: jest.fn().mockResolvedValue(undefined),
+}));

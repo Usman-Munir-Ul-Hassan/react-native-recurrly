@@ -1,4 +1,5 @@
 import { SubscriptionProvider } from "@/context/subscription-context";
+import { PreferencesProvider } from "@/context/preferences-context";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -12,7 +13,11 @@ if (!publishableKey) {
   throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Add your key to .env.local.");
 }
 
-LogBox.ignoreLogs(["ImageBackground is deprecated"]);
+LogBox.ignoreLogs([
+  "ImageBackground is deprecated",
+  "[expo-notifications] Push notifications (remote notifications) are unavailable",
+  "`expo-notifications` functionality is not fully supported in Expo Go",
+]);
 
 function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -62,9 +67,11 @@ function InitialLayout() {
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <SubscriptionProvider>
-        <InitialLayout />
-      </SubscriptionProvider>
+      <PreferencesProvider>
+        <SubscriptionProvider>
+          <InitialLayout />
+        </SubscriptionProvider>
+      </PreferencesProvider>
     </ClerkProvider>
   );
 }

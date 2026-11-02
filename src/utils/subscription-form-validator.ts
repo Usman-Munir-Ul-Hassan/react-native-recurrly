@@ -5,7 +5,9 @@ export interface SubscriptionFormInput {
   name: string;
   price: string;
   category: string;
+  billingCadence?: "Monthly" | "Yearly";
   billingCycle?: string;
+  currencySymbol?: string;
   paymentMethod?: string;
   invoiceEmail?: string;
   logoUrl?: string;
@@ -84,15 +86,18 @@ export function buildNewSubscription(
   const cleanName = input.name.trim();
   const rawPrice = input.price.trim().replace(/[^0-9.]/g, "");
   const amountNumeric = parseFloat(rawPrice);
-  const formattedPrice = `$${amountNumeric.toFixed(2)}/mo`;
+  const symbol = input.currencySymbol || "$";
+  const isYearly = input.billingCadence === "Yearly";
+  const cycleSuffix = isYearly ? "/yr" : "/mo";
+  const formattedPrice = `${symbol}${amountNumeric.toFixed(2)}${cycleSuffix}`;
 
   const slug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
   const id = `sub-${Date.now()}-${slug || "custom"}`;
 
-  // Default renewal in 30 days
+  // Renewal date: 365 days for yearly, 30 days for monthly
   const baseDate = options?.customDate ?? new Date();
-  const renewalDate = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const daysRemaining = 30;
+  const daysRemaining = isYearly ? 365 : 30;
+  const renewalDate = new Date(baseDate.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
 
   return {
     id,
@@ -107,7 +112,7 @@ export function buildNewSubscription(
     daysRemaining,
     renewalDateShort: `Renews ${formatShortDate(renewalDate)}`,
     nextRenewalFull: `${formatFullDate(renewalDate)} (in ${daysRemaining} days)`,
-    billingCycle: input.billingCycle || "Monthly (renews automatically)",
+    billingCycle: input.billingCycle || (isYearly ? "Yearly (renews automatically)" : "Monthly (renews automatically)"),
     paymentMethod: input.paymentMethod || "Apple Pay",
     invoiceEmail: input.invoiceEmail || "user@chronicle.app",
   };
