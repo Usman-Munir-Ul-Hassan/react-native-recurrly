@@ -69,6 +69,7 @@ describe("subscription-form-validator", () => {
 
       expect(sub.name).toBe("Linear");
       expect(sub.initials).toBe("LI");
+      expect(sub.logoUrl).toBe("https://www.google.com/s2/favicons?domain=linear.app&sz=128");
       expect(sub.category).toBe("Dev Tools");
       expect(sub.amountNumeric).toBe(12.0);
       expect(sub.price).toBe("$12.00/mo");

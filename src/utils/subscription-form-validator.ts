@@ -1,4 +1,5 @@
 import { Subscription } from "@/types/subscription";
+import { resolveBrandIconUrl } from "@/services/subscription/brand-icon-service";
 
 export interface SubscriptionFormInput {
   name: string;
@@ -7,6 +8,7 @@ export interface SubscriptionFormInput {
   billingCycle?: string;
   paymentMethod?: string;
   invoiceEmail?: string;
+  logoUrl?: string;
 }
 
 export interface ValidationResult {
@@ -96,6 +98,7 @@ export function buildNewSubscription(
     id,
     name: cleanName,
     initials: generateInitials(cleanName),
+    logoUrl: input.logoUrl ?? resolveBrandIconUrl(cleanName),
     status: "Active",
     category: input.category || "General",
     price: formattedPrice,

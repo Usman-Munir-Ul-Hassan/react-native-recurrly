@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -14,8 +14,11 @@ import { Colors, Radius } from "@/constants/theme";
 import { Subscription } from "@/types/subscription";
 import {
   buildNewSubscription,
+  generateInitials,
   validateSubscriptionForm,
 } from "@/utils/subscription-form-validator";
+import { resolveBrandIconUrl } from "@/services/subscription/brand-icon-service";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 
 const CATEGORIES = [
   "Dev Tools",
@@ -53,6 +56,9 @@ export function AddSubscriptionModal({
   const [paymentMethod, setPaymentMethod] = useState("Apple Pay");
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
 
+  const iconPreviewUrl = useMemo(() => resolveBrandIconUrl(name), [name]);
+  const previewInitials = useMemo(() => generateInitials(name || "SB"), [name]);
+
   const handleClose = () => {
     setName("");
     setPrice("");
@@ -76,6 +82,7 @@ export function AddSubscriptionModal({
       category,
       paymentMethod,
       invoiceEmail: realUserEmail,
+      logoUrl: iconPreviewUrl,
     });
 
     onAdd(newSub);
@@ -159,7 +166,7 @@ export function AddSubscriptionModal({
                 paddingBottom: 16,
               }}
             >
-              {/* Name Input */}
+              {/* Name Input with Live Brand Icon Preview */}
               <View style={{ marginBottom: 14, marginTop: 6 }}>
                 <Text
                   style={{
@@ -173,26 +180,54 @@ export function AddSubscriptionModal({
                 >
                   Service Name
                 </Text>
-                <TextInput
-                  value={name}
-                  onChangeText={(val) => {
-                    setName(val);
-                    if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
-                  }}
-                  placeholder="e.g. Spotify, ChatGPT, Linear"
-                  placeholderTextColor={Colors.ash}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: errors.name ? "#dc2626" : Colors.fog,
-                    borderRadius: Radius.input,
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    fontSize: 14,
-                    color: Colors.pitchBlack,
-                    backgroundColor: "#FAF9F6",
-                  }}
-                  testID="input-subscription-name"
-                />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  {/* Live Icon Preview Badge */}
+                  <View
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: Radius.tag,
+                      backgroundColor: "#FAF9F6",
+                      borderWidth: 1,
+                      borderColor: Colors.fog,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <ImageWithSkeleton
+                      uri={iconPreviewUrl}
+                      fallbackText={previewInitials}
+                      width={28}
+                      height={28}
+                      borderRadius={Radius.tag}
+                      fallbackTextColor={Colors.pitchBlack}
+                      fallbackTextSize={14}
+                    />
+                  </View>
+
+                  <TextInput
+                    value={name}
+                    onChangeText={(val) => {
+                      setName(val);
+                      if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                    }}
+                    placeholder="e.g. Spotify, ChatGPT, Netflix"
+                    placeholderTextColor={Colors.ash}
+                    style={{
+                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: errors.name ? "#dc2626" : Colors.fog,
+                      borderRadius: Radius.input,
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
+                      fontSize: 14,
+                      color: Colors.pitchBlack,
+                      backgroundColor: "#FAF9F6",
+                    }}
+                    testID="input-subscription-name"
+                  />
+                </View>
                 {errors.name && (
                   <Text style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>
                     {errors.name}
