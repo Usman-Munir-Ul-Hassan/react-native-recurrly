@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
 import { getSemanticCardTheme } from "@/constants/theme";
 import { Subscription } from "@/types/subscription";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -9,7 +10,6 @@ interface SubscriptionCardProps {
 }
 
 export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProps) {
-  const [imageError, setImageError] = useState(false);
   const isCancelled = subscription.status === "Cancelled";
   const theme = getSemanticCardTheme(subscription);
 
@@ -53,23 +53,14 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               overflow: "hidden",
             }}
           >
-            {subscription.logoUrl && !imageError ? (
-              <Image
-                source={{ uri: subscription.logoUrl }}
-                onError={() => setImageError(true)}
-                style={{ width: 28, height: 28, resizeMode: "contain" }}
-              />
-            ) : (
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: isCancelled ? "#999999" : theme.textColor,
-                }}
-              >
-                {subscription.initials}
-              </Text>
-            )}
+            <ImageWithSkeleton
+              uri={subscription.logoUrl}
+              fallbackText={subscription.initials}
+              width={28}
+              height={28}
+              borderRadius={6}
+              fallbackTextColor={isCancelled ? "#999999" : theme.textColor}
+            />
           </View>
 
           {/* Name & Date */}

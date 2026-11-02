@@ -3,16 +3,20 @@ import { AppInput } from "@/components/ui/app-input";
 import { AuthDivider } from "@/components/ui/auth-divider";
 import { SocialButton } from "@/components/ui/social-button";
 import { Colors, Typography } from "@/constants/theme";
+import { useLoginFlow } from "@/hooks/use-login-flow";
+import { useSocialAuth } from "@/hooks/use-social-auth";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function LoginScreen() {
     const router = useRouter();
-
-    const handleLogin = () => {
-        router.replace("/(tabs)");
-    };
+    const { email, setEmail, password, setPassword, loading, handleLogin } =
+        useLoginFlow();
+    const { authenticate: authenticateSocial, loadingProvider } = useSocialAuth();
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -36,6 +40,9 @@ export default function LoginScreen() {
                     label="Email address"
                     placeholder="name@example.com"
                     keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
                 />
 
                 <AppInput
@@ -44,11 +51,16 @@ export default function LoginScreen() {
                     isPassword
                     rightActionText="Forgot?"
                     onRightActionPress={() => router.push("/forgot-password")}
+                    value={password}
+                    onChangeText={setPassword}
                 />
 
                 {/* Primary CTA */}
                 <View className="mt-2 mb-2">
-                    <AppButton title="Log in" onPress={handleLogin} />
+                    <AppButton
+                        title={loading ? "Logging in..." : "Log in"}
+                        onPress={handleLogin}
+                    />
                 </View>
 
                 {/* Divider */}
@@ -57,17 +69,19 @@ export default function LoginScreen() {
                 {/* Social SSO Logins */}
                 <SocialButton
                     provider="github"
-                    onPress={() => alert("GitHub SSO Triggered")}
+                    onPress={() => authenticateSocial("github")}
+                    isLoading={loadingProvider === "github"}
                 />
                 <SocialButton
                     provider="google"
-                    onPress={() => alert("Google SSO Triggered")}
+                    onPress={() => authenticateSocial("google")}
+                    isLoading={loadingProvider === "google"}
                 />
 
                 {/* Footer Navigation */}
                 <View className="flex-row justify-center items-center mt-8">
                     <Text style={[Typography.body, { color: Colors.graphite }]}>
-                        Don't have an account?{" "}
+                        {"Don't have an account? "}
                     </Text>
                     <Pressable onPress={() => router.push("/register")}>
                         <Text

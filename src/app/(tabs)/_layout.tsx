@@ -1,11 +1,14 @@
 import { TAB_ITEMS } from "@/constants/tabs";
 import { Colors } from "@/constants/theme";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
     const insets = useSafeAreaInsets();
+    const [fontsLoaded] = useFonts(Ionicons.font);
 
     return (
         <Tabs
@@ -36,11 +39,15 @@ export default function TabsLayout() {
                     options={{
                         title: tab.title,
                         tabBarIcon: ({ focused, color }) => (
-                            <Ionicons
-                                name={focused ? tab.iconFocused : tab.iconUnfocused}
-                                size={22}
-                                color={String(color)}
-                            />
+                            !fontsLoaded ? (
+                                <Skeleton width={20} height={20} borderRadius={10} />
+                            ) : (
+                                <Ionicons
+                                    name={focused ? tab.iconFocused : tab.iconUnfocused}
+                                    size={22}
+                                    color={String(color)}
+                                />
+                            )
                         ),
                     }}
                 />

@@ -1,0 +1,142 @@
+import React from "react";
+import { renderHook, act } from "@testing-library/react-native";
+import { useUser } from "@clerk/expo";
+import { SubscriptionProvider, useSubscriptions } from "../subscription-context";
+import { Subscription } from "@/types/subscription";
+
+jest.mock("@clerk/expo", () => ({
+    useUser: jest.fn(),
+}));
+
+describe("SubscriptionContext", () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (useUser as jest.Mock).mockReturnValue({
+            isLoaded: true,
+            user: null,
+        });
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <SubscriptionProvider>{children}</SubscriptionProvider>
+    );
+
+    it("should provide initial subscriptions and calculate active metrics", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        expect(result.current.subscriptions.length).toBeGreaterThan(0);
+        expect(result.current.activeCount).toBeGreaterThan(0);
+        expect(result.current.totalMonthlyAmount).toMatch(/^\$[0-9]+\.[0-9]{2}$/);
+    });
+
+    it("should cancel a subscription and decrement the active count", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const initialActive = result.current.activeCount;
+        const targetId = result.current.subscriptions[0].id;
+
+        await act(async () => {
+            result.current.cancelSubscription(targetId);
+        });
+
+        const updated = result.current.getSubscription(targetId);
+        expect(updated?.status).toBe("Cancelled");
+        expect(result.current.activeCount).toBe(initialActive - 1);
+    });
+
+    it("should pause a subscription and update status", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const targetId = result.current.subscriptions[0].id;
+
+        await act(async () => {
+            result.current.pauseSubscription(targetId);
+        });
+
+        const updated = result.current.getSubscription(targetId);
+        expect(updated?.status).toBe("Paused");
+    });
+
+    it("should add a new subscription to the list", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const initialCount = result.current.subscriptions.length;
+
+        const newSub: Subscription = {
+            id: "custom-spotify-test",
+            name: "Spotify",
+            initials: "SP",
+            status: "Active",
+            category: "Entertainment",
+            price: "$10.99/mo",
+            amountNumeric: 10.99,
+            cadence: "in 10 days",
+            daysRemaining: 10,
+            renewalDateShort: "Renews Nov 20",
+            nextRenewalFull: "November 20, 2026",
+            billingCycle: "Monthly",
+            paymentMethod: "Card",
+            invoiceEmail: "test@example.com",
+        };
+
+        await act(async () => {
+            result.current.addSubscription(newSub);
+        });
+
+        expect(result.current.subscriptions.length).toBe(initialCount + 1);
+        expect(result.current.subscriptions[0].id).toBe("custom-spotify-test");
+    });
+
+    it("should not leak localOverride across sign-out or account switch", async () => {
+        let currentUser: any = {
+            id: "user_alice",
+            unsafeMetadata: { subscriptions: [] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        (useUser as jest.Mock).mockImplementation(() => ({
+            isLoaded: true,
+            user: currentUser,
+        }));
+
+        const { result, rerender } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        const aliceSub: Subscription = {
+            id: "alice-exclusive-sub",
+            name: "Alice Sub",
+            initials: "AS",
+            status: "Active",
+            category: "Dev Tools",
+            price: "$5.00/mo",
+            amountNumeric: 5.0,
+            cadence: "in 5 days",
+            daysRemaining: 5,
+            renewalDateShort: "Renews Nov 5",
+            nextRenewalFull: "November 5, 2026",
+            billingCycle: "Monthly",
+            paymentMethod: "Card",
+            invoiceEmail: "alice@example.com",
+        };
+
+        await act(async () => {
+            result.current.addSubscription(aliceSub);
+        });
+
+        // Alice sees her new subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(true);
+
+        // Alice signs out (user becomes null)
+        currentUser = null;
+        await rerender({});
+
+        // Logged-out session must NOT see Alice's subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(false);
+
+        // Bob signs in
+        currentUser = {
+            id: "user_bob",
+            unsafeMetadata: { subscriptions: [] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        await rerender({});
+
+        // Bob must NOT see Alice's subscription
+        expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(false);
+    });
+});

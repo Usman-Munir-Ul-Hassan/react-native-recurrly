@@ -1,21 +1,29 @@
 import React, { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Colors, Radius } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
+import { AppHeader } from "@/components/navigation/app-header";
 import { MetricCard } from "@/components/subscription/metric-card";
 import { FilterDropdown } from "@/components/subscription/filter-dropdown";
 import { TabType } from "@/components/subscription/filter-tabs";
 import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { HorizontalSubscriptionCard } from "@/components/subscription/horizontal-card";
+import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
 
 export default function SubscriptionsFeedScreen() {
   const router = useRouter();
-  const { subscriptions, activeCount, totalMonthlyAmount, nextRenewalDate } =
-    useSubscriptions();
+  const {
+    subscriptions,
+    activeCount,
+    totalMonthlyAmount,
+    nextRenewalDate,
+    addSubscription,
+  } = useSubscriptions();
 
   const [selectedTab, setSelectedTab] = useState<TabType>("All");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Upcoming renewals for the X-direction horizontal carousel
   const upcomingSubs = [...subscriptions]
@@ -45,42 +53,8 @@ export default function SubscriptionsFeedScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 40 }}
       >
-        {/* Top Header: CHRONICLE (Left) <-----------------> JD Avatar (Right) */}
-        <View className="flex-row items-center justify-between py-3 mb-2">
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "800",
-              color: Colors.pitchBlack,
-              letterSpacing: 1.5,
-            }}
-          >
-            CHRONICLE
-          </Text>
-
-          {/* User Profile Avatar */}
-          <View
-            className="items-center justify-center"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              backgroundColor: Colors.badgeBg,
-              borderWidth: 1,
-              borderColor: Colors.badgeBorder,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                color: Colors.pitchBlack,
-              }}
-            >
-              JD
-            </Text>
-          </View>
-        </View>
+        {/* Top Header: Real-time User Profile & Avatar */}
+        <AppHeader />
 
         {/* Dynamic Metric Widget */}
         <MetricCard
@@ -158,7 +132,7 @@ export default function SubscriptionsFeedScreen() {
 
           {/* + Add Button */}
           <Pressable
-            onPress={() => Alert.alert("Add Subscription", "Opening add commitment modal...")}
+            onPress={() => setIsAddModalOpen(true)}
             style={{
               backgroundColor: Colors.action,
               borderRadius: 9999,
@@ -196,6 +170,13 @@ export default function SubscriptionsFeedScreen() {
             </View>
           )}
         </View>
+
+        {/* Add Subscription Modal */}
+        <AddSubscriptionModal
+          visible={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAdd={addSubscription}
+        />
       </ScrollView>
     </SafeAreaView>
   );

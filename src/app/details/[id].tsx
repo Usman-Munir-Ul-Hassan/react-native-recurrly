@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import React from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors, Radius } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
 import { AppButton } from "@/components/ui/app-button";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 
 export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { getSubscription, cancelSubscription } = useSubscriptions();
-  const [imageError, setImageError] = useState(false);
 
   const subscription = getSubscription(id);
 
@@ -106,24 +106,15 @@ export default function SubscriptionDetailScreen() {
               overflow: "hidden",
             }}
           >
-            {subscription.logoUrl && !imageError ? (
-              <Image
-                source={{ uri: subscription.logoUrl }}
-                onError={() => setImageError(true)}
-                style={{ width: 34, height: 34, resizeMode: "contain" }}
-              />
-            ) : (
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: Colors.pitchBlack,
-                  letterSpacing: 0.5,
-                }}
-              >
-                {subscription.initials}
-              </Text>
-            )}
+            <ImageWithSkeleton
+              uri={subscription.logoUrl}
+              fallbackText={subscription.initials}
+              width={34}
+              height={34}
+              borderRadius={Radius.tag}
+              fallbackTextColor={Colors.pitchBlack}
+              fallbackTextSize={18}
+            />
           </View>
 
           <View className="flex-1">

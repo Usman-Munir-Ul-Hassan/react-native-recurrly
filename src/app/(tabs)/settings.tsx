@@ -2,12 +2,14 @@ import React from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useClerk } from "@clerk/expo";
 import { Colors } from "@/constants/theme";
 import { SETTINGS_SECTIONS } from "@/data/settings.data";
 import { SettingsSectionCard } from "@/components/settings/settings-section-card";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { signOut } = useClerk();
 
   const handleItemPress = (itemId: string) => {
     if (itemId === "privacy-policy") {
@@ -20,7 +22,18 @@ export default function SettingsScreen() {
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Sign Out", style: "destructive", onPress: () => router.replace("/login") },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace("/(auth)/login");
+          } catch (err: any) {
+            Alert.alert("Sign Out Error", err?.message || "Failed to sign out.");
+          }
+        },
+      },
     ]);
   };
 

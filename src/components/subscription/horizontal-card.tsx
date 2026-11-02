@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
-import { Colors, getSemanticCardTheme } from "@/constants/theme";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
+import { getSemanticCardTheme } from "@/constants/theme";
 import { Subscription } from "@/types/subscription";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 
 interface HorizontalCardProps {
   subscription: Subscription;
@@ -12,7 +13,6 @@ export function HorizontalSubscriptionCard({
   subscription,
   onPress,
 }: HorizontalCardProps) {
-  const [imageError, setImageError] = useState(false);
   const formattedPrice = `$${subscription.amountNumeric.toFixed(2)}`;
   const theme = getSemanticCardTheme(subscription);
 
@@ -49,23 +49,14 @@ export function HorizontalSubscriptionCard({
               overflow: "hidden",
             }}
           >
-            {subscription.logoUrl && !imageError ? (
-              <Image
-                source={{ uri: subscription.logoUrl }}
-                onError={() => setImageError(true)}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            ) : (
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: theme.textColor,
-                }}
-              >
-                {subscription.initials}
-              </Text>
-            )}
+            <ImageWithSkeleton
+              uri={subscription.logoUrl}
+              fallbackText={subscription.initials}
+              width={26}
+              height={26}
+              borderRadius={6}
+              fallbackTextColor={theme.textColor}
+            />
           </View>
 
           {/* Price + Days Remaining Stacked */}
