@@ -30,6 +30,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } | null>(null);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+    // Reset in-memory override when authentication confirms the user signed out or switched accounts
+    if (isUserLoaded && overrideState?.userId && overrideState.userId !== currentUserId) {
+        setOverrideState(null);
+    }
+
     // Only apply local override if it belongs to the currently active user (avoids cross-account leaks)
     const activeOverride =
         overrideState?.userId === currentUserId ? overrideState.subscriptions : null;

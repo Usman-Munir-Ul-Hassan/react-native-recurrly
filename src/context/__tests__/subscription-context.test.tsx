@@ -139,4 +139,62 @@ describe("SubscriptionContext", () => {
         // Bob must NOT see Alice's subscription
         expect(result.current.subscriptions.some((s) => s.id === "alice-exclusive-sub")).toBe(false);
     });
+
+    it("should clear overrideState on sign out so same-account re-login receives fresh metadata", async () => {
+        let currentUser: any = {
+            id: "user_alice",
+            unsafeMetadata: { subscriptions: [] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        (useUser as jest.Mock).mockImplementation(() => ({
+            isLoaded: true,
+            user: currentUser,
+        }));
+
+        const { result, rerender } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        const zombieSub: Subscription = {
+            id: "zombie-sub",
+            name: "Zombie Sub",
+            initials: "ZS",
+            status: "Active",
+            category: "Dev Tools",
+            price: "$9.99/mo",
+            amountNumeric: 9.99,
+            cadence: "in 10 days",
+            daysRemaining: 10,
+            renewalDateShort: "Renews Nov 10",
+            nextRenewalFull: "November 10, 2026",
+            billingCycle: "Monthly",
+            paymentMethod: "Card",
+            invoiceEmail: "alice@example.com",
+        };
+
+        await act(async () => {
+            result.current.addSubscription(zombieSub);
+        });
+
+        expect(result.current.subscriptions.some((s) => s.id === "zombie-sub")).toBe(true);
+
+        // Alice signs out (confirmed by isLoaded: true, user: null)
+        currentUser = null;
+        await rerender({});
+
+        // Now Alice logs back in, but in the DB her metadata has fresh subscriptions instead of zombieSub
+        const freshCloudSub: Subscription = {
+            ...zombieSub,
+            id: "fresh-cloud-sub",
+            name: "Fresh Cloud Sub",
+        };
+        currentUser = {
+            id: "user_alice",
+            unsafeMetadata: { subscriptions: [freshCloudSub] },
+            update: jest.fn().mockResolvedValue(undefined),
+        };
+        await rerender({});
+
+        // Must load fresh data from Clerk DB, not the old in-memory zombieSub
+        expect(result.current.subscriptions.some((s) => s.id === "fresh-cloud-sub")).toBe(true);
+        expect(result.current.subscriptions.some((s) => s.id === "zombie-sub")).toBe(false);
+    });
 });
