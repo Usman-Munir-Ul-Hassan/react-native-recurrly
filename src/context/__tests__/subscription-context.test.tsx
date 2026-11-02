@@ -225,4 +225,49 @@ describe("SubscriptionContext", () => {
         expect(result.current.subscriptions.some((s) => s.id === "fresh-cloud-sub")).toBe(true);
         expect(result.current.subscriptions.some((s) => s.id === "zombie-sub")).toBe(false);
     });
+
+    it("should update an existing subscription and recalculate cycle dates when modified", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const target = result.current.subscriptions[0];
+
+        await act(async () => {
+            result.current.updateSubscription(target.id, {
+                startDate: "2026-10-18",
+                price: "$19.99/mo",
+                amountNumeric: 19.99,
+            });
+        });
+
+        const updated = result.current.getSubscription(target.id);
+        expect(updated?.startDate).toBe("2026-10-18");
+        expect(updated?.price).toBe("$19.99/mo");
+        expect(updated?.amountNumeric).toBe(19.99);
+        expect(updated?.renewalDate).toBeDefined();
+        expect(updated?.daysRemaining).toBeDefined();
+    });
+
+    it("should format totalMonthlyAmount with compact number notation when amount exceeds 1000", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        await act(async () => {
+            result.current.addSubscription({
+                id: "enterprise-tool",
+                name: "Enterprise Cloud Suite",
+                initials: "EC",
+                logoUrl: "",
+                status: "Active",
+                category: "Dev Tools",
+                price: "$1500.00/mo",
+                amountNumeric: 1500.0,
+                cadence: "Monthly",
+                daysRemaining: 15,
+                billingCycle: "Monthly",
+                paymentMethod: "Visa •••• 1234",
+                currency: "USD",
+            });
+        });
+
+        // Total amount is over 1000 USD, so compact notation formats it with 'K'
+        expect(result.current.totalMonthlyAmount).toMatch(/^\$[0-9]+(\.[0-9])?K$/);
+    });
 });

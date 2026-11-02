@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
-import { Colors, Radius } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 
 interface MetricCardProps {
   totalAmount: string;

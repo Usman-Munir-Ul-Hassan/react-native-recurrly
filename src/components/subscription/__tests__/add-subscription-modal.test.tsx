@@ -85,4 +85,79 @@ describe("AddSubscriptionModal", () => {
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
+
+  it("supports custom cycle start date and passes it to onAdd", async () => {
+    const { getByTestId } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-name"), "Netflix");
+      fireEvent.changeText(getByTestId("input-subscription-price"), "19.99");
+      fireEvent.changeText(getByTestId("input-cycle-start-date"), "2026-10-18");
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    expect(mockOnAdd).toHaveBeenCalledTimes(1);
+    const sub = mockOnAdd.mock.calls[0][0];
+    expect(sub.startDate).toBe("2026-10-18");
+    expect(sub.renewalDate).toBeDefined();
+    expect(sub.daysRemaining).toBeDefined();
+  });
+
+  it("renders in edit mode and calls onUpdate with updated cycle", async () => {
+    const mockOnUpdate = jest.fn();
+    const existingSub = {
+      id: "sub-netflix",
+      name: "Netflix Standard",
+      initials: "NS",
+      status: "Active" as const,
+      category: "Entertainment",
+      price: "$15.49/mo",
+      amountNumeric: 15.49,
+      cadence: "in 15 days",
+      daysRemaining: 15,
+      renewalDateShort: "Renews Nov 18",
+      nextRenewalFull: "November 18, 2026",
+      billingCycle: "Monthly (renews automatically)",
+      paymentMethod: "Apple Pay",
+      invoiceEmail: "user@test.com",
+      startDate: "2026-10-18",
+      renewalDate: "2026-11-18",
+    };
+
+    const { getByText, getByTestId } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        onUpdate={mockOnUpdate}
+        initialSubscription={existingSub}
+      />
+    );
+
+    expect(getByText("Edit Subscription")).toBeTruthy();
+    expect(getByText("Save Changes")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-price"), "17.99");
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+    const updated = mockOnUpdate.mock.calls[0][0];
+    expect(updated.id).toBe("sub-netflix");
+    expect(updated.amountNumeric).toBe(17.99);
+    expect(updated.price).toBe("$17.99/mo");
+  });
 });

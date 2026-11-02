@@ -1,8 +1,9 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { getSemanticCardTheme } from "@/constants/theme";
-import { Subscription } from "@/types/subscription";
+import { getSubscriptionCurrency, Subscription } from "@/types/subscription";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
+import { usePreferences } from "@/context/preferences-context";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -10,8 +11,13 @@ interface SubscriptionCardProps {
 }
 
 export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProps) {
+  const prefs = usePreferences();
+  const subCurrency = getSubscriptionCurrency(subscription);
+  const formatFn = prefs.formatCompactPrice ?? prefs.formatPrice;
   const isCancelled = subscription.status === "Cancelled";
   const theme = getSemanticCardTheme(subscription);
+  const isYearly =
+    subscription.cadence?.includes("yr") || subscription.billingCycle?.includes("Yearly");
 
   return (
     <Pressable
@@ -99,7 +105,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               fontVariant: ["tabular-nums"],
             }}
           >
-            ${subscription.amountNumeric.toFixed(2)}
+            {formatFn(subscription.amountNumeric, subscription.cadence, subCurrency).replace(/\/mo|\/yr/, "")}
           </Text>
           <Text
             style={{
@@ -109,7 +115,7 @@ export function SubscriptionCard({ subscription, onPress }: SubscriptionCardProp
               marginTop: 2,
             }}
           >
-            per month
+            {isYearly ? "per year" : "per month"}
           </Text>
         </View>
       </View>

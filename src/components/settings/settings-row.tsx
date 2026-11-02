@@ -33,28 +33,35 @@ export function SettingsRow({ item, isLast, onPress }: SettingsRowProps) {
         {item.label}
       </Text>
 
-      {item.value && (
-        <View
-          style={{
-            backgroundColor: Colors.badgeBg,
-            borderWidth: 1,
-            borderColor: Colors.badgeBorder,
-            borderRadius: 9999,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-          }}
-        >
-          <Text
+      {item.value && (() => {
+        const isDisabled = item.value === "Disabled";
+        const badgeBg = isDisabled ? "#F3F4F6" : item.highlight ? "#F0FDF4" : Colors.badgeBg;
+        const badgeBorder = isDisabled ? "#E5E7EB" : item.highlight ? "#BBF7D0" : Colors.badgeBorder;
+        const badgeTextColor = isDisabled ? "#9CA3AF" : item.highlight ? "#166534" : Colors.charcoal;
+
+        return (
+          <View
             style={{
-              fontSize: 12,
-              fontWeight: "600",
-              color: Colors.charcoal,
+              backgroundColor: badgeBg,
+              borderWidth: 1,
+              borderColor: badgeBorder,
+              borderRadius: 9999,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
             }}
           >
-            {item.value}
-          </Text>
-        </View>
-      )}
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: badgeTextColor,
+              }}
+            >
+              {item.value}
+            </Text>
+          </View>
+        );
+      })()}
     </Pressable>
   );
 }

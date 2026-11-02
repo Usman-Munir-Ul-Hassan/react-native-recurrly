@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -28,6 +28,27 @@ export default function SubscriptionsFeedScreen() {
 
   const [selectedTab, setSelectedTab] = useState<TabType>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const carouselRef = useRef<ScrollView>(null);
+  const [scrollX, setScrollX] = useState(0);
+  const [contentWidth, setContentWidth] = useState(0);
+  const [layoutWidth, setLayoutWidth] = useState(0);
+  const CARD_SCROLL_STEP = 190;
+
+  const handleScrollLeft = () => {
+    const targetX = Math.max(0, scrollX - CARD_SCROLL_STEP);
+    carouselRef.current?.scrollTo?.({ x: targetX, animated: true });
+    setScrollX(targetX);
+  };
+
+  const handleScrollRight = () => {
+    const maxScroll = Math.max(0, contentWidth - layoutWidth);
+    const targetX =
+      contentWidth > 0 && layoutWidth > 0
+        ? Math.min(maxScroll, scrollX + CARD_SCROLL_STEP)
+        : scrollX + CARD_SCROLL_STEP;
+    carouselRef.current?.scrollTo?.({ x: targetX, animated: true });
+    setScrollX(targetX);
+  };
 
   // Upcoming renewals for the X-direction horizontal carousel
   const upcomingSubs = [...subscriptions]
@@ -41,6 +62,13 @@ export default function SubscriptionsFeedScreen() {
       if (bIdx !== -1) return 1;
       return a.daysRemaining - b.daysRemaining;
     });
+
+  const canScrollLeft = upcomingSubs.length > 2 && scrollX > 5;
+  const canScrollRight =
+    upcomingSubs.length > 2 &&
+    (contentWidth > 0 && layoutWidth > 0
+      ? scrollX < contentWidth - layoutWidth - 5
+      : true);
 
   // Filtered subscriptions calculation for vertical list
   const displayedSubscriptions = useMemo(
@@ -99,19 +127,89 @@ export default function SubscriptionsFeedScreen() {
               </Pressable>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 8 }}
-            >
-              {upcomingSubs.map((item) => (
-                <HorizontalSubscriptionCard
-                  key={`upcoming-${item.id}`}
-                  subscription={item}
-                  onPress={() => router.push(`/details/${item.id}`)}
-                />
-              ))}
-            </ScrollView>
+            <View style={{ position: "relative" }}>
+              {/* Left Scroll Affordance Button: disappears completely when scrolled to start */}
+              {canScrollLeft && (
+                <Pressable
+                  onPress={handleScrollLeft}
+                  hitSlop={8}
+                  style={{
+                    position: "absolute",
+                    left: -2,
+                    top: "34%",
+                    zIndex: 10,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    backgroundColor: Colors.cloud,
+                    borderWidth: 1,
+                    borderColor: Colors.fog,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#000000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.14,
+                    shadowRadius: 5,
+                    elevation: 5,
+                  }}
+                  accessibilityLabel="Scroll upcoming subscriptions left"
+                  testID="btn-carousel-scroll-left"
+                >
+                  <Ionicons name="chevron-back" size={22} color={Colors.pitchBlack} />
+                </Pressable>
+              )}
+
+              {/* Right Scroll Affordance Button: disappears completely when scrolled to end */}
+              {canScrollRight && (
+                <Pressable
+                  onPress={handleScrollRight}
+                  hitSlop={8}
+                  style={{
+                    position: "absolute",
+                    right: -2,
+                    top: "34%",
+                    zIndex: 10,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    backgroundColor: Colors.cloud,
+                    borderWidth: 1,
+                    borderColor: Colors.fog,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#000000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.14,
+                    shadowRadius: 5,
+                    elevation: 5,
+                  }}
+                  accessibilityLabel="Scroll upcoming subscriptions right"
+                  testID="btn-carousel-scroll-right"
+                >
+                  <Ionicons name="chevron-forward" size={22} color={Colors.pitchBlack} />
+                </Pressable>
+              )}
+
+              <ScrollView
+                ref={carouselRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 8 }}
+                onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
+                onContentSizeChange={(w) => setContentWidth(w)}
+                onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
+                scrollEventThrottle={16}
+                testID="scroll-upcoming-carousel"
+              >
+                {upcomingSubs.map((item) => (
+                  <HorizontalSubscriptionCard
+                    key={`upcoming-${item.id}`}
+                    subscription={item}
+                    onPress={() => router.push(`/details/${item.id}`)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
           </View>
         )}
 
