@@ -126,4 +126,15 @@ describe("SubscriptionDetailScreen", () => {
       })
     );
   });
+
+  it("sanitizes renewalDateShort so it never renders duplicate 'Renews Renews'", async () => {
+    mockSubscription.renewalDateShort = "Renews Dec 1";
+    const { getByText, queryByText } = await render(<SubscriptionDetailScreen />);
+
+    expect(getByText("Renews Dec 1")).toBeTruthy();
+    expect(queryByText(/Renews\s+Renews/i)).toBeNull();
+
+    // Restore
+    mockSubscription.renewalDateShort = "Nov 18";
+  });
 });

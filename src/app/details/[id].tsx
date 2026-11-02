@@ -113,6 +113,15 @@ export default function SubscriptionDetailScreen() {
     ? formatPrice(subscription.amountNumeric, subscription.cadence, subCurrency)
     : "";
 
+  const cleanRenewalDate = subscription?.renewalDateShort?.replace(/^Renews\s*/i, "") || "";
+  const statusSubtitle = isCancelled
+    ? "Discontinued"
+    : isPaused
+    ? "Subscription paused"
+    : cleanRenewalDate
+    ? `Renews ${cleanRenewalDate}`
+    : "Active";
+
   const handleShareReceipt = async () => {
     if (!subscription) return;
     const receiptText = [
@@ -299,11 +308,7 @@ export default function SubscriptionDetailScreen() {
                 flex: 1,
               }}
             >
-              {isCancelled
-                ? "Discontinued"
-                : isPaused
-                ? "Paused"
-                : `Renews ${subscription.renewalDateShort}`}
+              {statusSubtitle}
             </Text>
           </View>
 
