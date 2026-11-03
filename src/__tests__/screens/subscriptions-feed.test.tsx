@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent, act } from "@testing-library/react-native";
-import SubscriptionsFeedScreen from "../(tabs)/index";
+import SubscriptionsFeedScreen from "@/app/(tabs)/index";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -147,6 +147,32 @@ describe("SubscriptionsFeedScreen - Carousel & Total Commitments", () => {
     // Right button must disappear completely at the boundary
     expect(queryByTestId("btn-carousel-scroll-right")).toBeNull();
     // Left button must be visible
+    expect(getByTestId("btn-carousel-scroll-left")).toBeTruthy();
+  });
+
+  it("supports scroll navigation when 2 cards overflow measured layout width", async () => {
+    const { getByTestId } = await render(<SubscriptionsFeedScreen />);
+    const scrollView = getByTestId("scroll-upcoming-carousel");
+
+    // Layout measured: screen width 320px, content width 400px (overflows)
+    await act(async () => {
+      scrollView.props.onLayout({
+        nativeEvent: { layout: { width: 320, height: 100, x: 0, y: 0 } },
+      });
+      scrollView.props.onContentSizeChange(400, 100);
+    });
+
+    // Right button should be visible because content overflows viewport
+    expect(getByTestId("btn-carousel-scroll-right")).toBeTruthy();
+
+    // Scroll by 50px
+    await act(async () => {
+      scrollView.props.onScroll({
+        nativeEvent: { contentOffset: { x: 50, y: 0 } },
+      });
+    });
+
+    // Left button becomes visible
     expect(getByTestId("btn-carousel-scroll-left")).toBeTruthy();
   });
 });

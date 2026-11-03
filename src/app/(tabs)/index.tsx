@@ -63,12 +63,13 @@ export default function SubscriptionsFeedScreen() {
       return a.daysRemaining - b.daysRemaining;
     });
 
-  const canScrollLeft = upcomingSubs.length > 2 && scrollX > 5;
+  const hasMeasured = contentWidth > 0 && layoutWidth > 0;
+  const isOverflowing = hasMeasured ? contentWidth > layoutWidth : upcomingSubs.length > 2;
+
+  const canScrollLeft = isOverflowing && scrollX > 5;
   const canScrollRight =
-    upcomingSubs.length > 2 &&
-    (contentWidth > 0 && layoutWidth > 0
-      ? scrollX < contentWidth - layoutWidth - 5
-      : true);
+    isOverflowing &&
+    (hasMeasured ? scrollX < contentWidth - layoutWidth - 5 : true);
 
   // Filtered subscriptions calculation for vertical list
   const displayedSubscriptions = useMemo(

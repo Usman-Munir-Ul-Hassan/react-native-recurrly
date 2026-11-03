@@ -1,7 +1,7 @@
 import React from "react";
 import { render, fireEvent, act } from "@testing-library/react-native";
 import { Alert, Share } from "react-native";
-import SubscriptionDetailScreen from "../[id]";
+import SubscriptionDetailScreen from "@/app/details/[id]";
 
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({

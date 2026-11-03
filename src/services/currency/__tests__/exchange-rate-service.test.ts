@@ -44,6 +44,22 @@ describe("exchange-rate-service", () => {
       const customRates = { USD: 1.0, EUR: 0.9, PKR: 270, GBP: 0.8, CAD: 1.35, INR: 83.0 };
       expect(convertCurrency(2700, "EUR", customRates, "PKR")).toBeCloseTo(9.0, 1);
     });
+
+    it("safely falls back to default rates when rates contain 0, negative, or NaN values", () => {
+      const badRates = {
+        USD: 1.0,
+        EUR: 0,
+        GBP: -0.5,
+        PKR: NaN,
+        CAD: Infinity,
+        INR: 83.0,
+      } as unknown as Record<any, number>;
+
+      // EUR is 0 -> should fall back to FALLBACK_RATES.EUR (0.92) rather than dividing by 0 or multiplying by 0
+      expect(convertCurrency(10, "EUR", badRates)).toBeCloseTo(9.2, 1);
+      // PKR is NaN -> should fall back to FALLBACK_RATES.PKR (278.0)
+      expect(convertCurrency(10, "PKR", badRates)).toBeCloseTo(2780, 0);
+    });
   });
 
   describe("formatPriceWithCadence", () => {

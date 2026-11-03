@@ -13,6 +13,14 @@ export const FALLBACK_RATES: Record<CurrencyCode, number> = {
 const RATES_API_URL = "https://open.er-api.com/v6/latest/USD";
 
 /**
+ * Ensures an exchange rate is a finite, positive number, otherwise returns the safe fallback.
+ */
+export function sanitizeRate(rate: unknown, fallback: number): number {
+  const num = typeof rate === "number" ? rate : Number(rate);
+  return typeof num === "number" && isFinite(num) && num > 0 ? num : fallback;
+}
+
+/**
  * Fetches real-time market exchange rates from a free public endpoint.
  * Returns resilient fallback rates if offline or if network fails.
  */
@@ -39,11 +47,11 @@ export async function fetchLiveExchangeRates(): Promise<Record<CurrencyCode, num
 
     return {
       USD: 1.0,
-      EUR: Number(liveRates.EUR) || FALLBACK_RATES.EUR,
-      GBP: Number(liveRates.GBP) || FALLBACK_RATES.GBP,
-      PKR: Number(liveRates.PKR) || FALLBACK_RATES.PKR,
-      CAD: Number(liveRates.CAD) || FALLBACK_RATES.CAD,
-      INR: Number(liveRates.INR) || FALLBACK_RATES.INR,
+      EUR: sanitizeRate(liveRates.EUR, FALLBACK_RATES.EUR),
+      GBP: sanitizeRate(liveRates.GBP, FALLBACK_RATES.GBP),
+      PKR: sanitizeRate(liveRates.PKR, FALLBACK_RATES.PKR),
+      CAD: sanitizeRate(liveRates.CAD, FALLBACK_RATES.CAD),
+      INR: sanitizeRate(liveRates.INR, FALLBACK_RATES.INR),
     };
   } catch {
     // Graceful offline fallback
@@ -65,11 +73,11 @@ export function convertCurrency(
   if (fromCurrency === targetCurrency) {
     return safeAmount;
   }
-  const fromRate = rates[fromCurrency] ?? 1.0;
-  const targetRate = rates[targetCurrency] ?? 1.0;
+  const fromRate = sanitizeRate(rates?.[fromCurrency], FALLBACK_RATES[fromCurrency] ?? 1.0);
+  const targetRate = sanitizeRate(rates?.[targetCurrency], FALLBACK_RATES[targetCurrency] ?? 1.0);
 
   // Convert from source currency to USD base, then from USD to target currency
-  const amountInUsd = fromRate > 0 ? safeAmount / fromRate : safeAmount;
+  const amountInUsd = safeAmount / fromRate;
   return amountInUsd * targetRate;
 }
 
