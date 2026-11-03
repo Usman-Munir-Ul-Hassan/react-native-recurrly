@@ -246,6 +246,34 @@ describe("SubscriptionContext", () => {
         expect(updated?.daysRemaining).toBeDefined();
     });
 
+    it("should recalculate renewal date dynamically when only startDate is updated", async () => {
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+        const target = result.current.subscriptions[0];
+
+        // Set an initial explicit renewal date
+        await act(async () => {
+            result.current.updateSubscription(target.id, {
+                startDate: "2026-08-01",
+                renewalDate: "2026-09-01",
+            });
+        });
+
+        const initial = result.current.getSubscription(target.id);
+        expect(initial?.renewalDate).toBe("2026-09-01");
+
+        // Now update ONLY startDate; it must recalculate renewalDate instead of keeping 2026-09-01
+        await act(async () => {
+            result.current.updateSubscription(target.id, {
+                startDate: "2026-10-15",
+            });
+        });
+
+        const refreshed = result.current.getSubscription(target.id);
+        expect(refreshed?.startDate).toBe("2026-10-15");
+        expect(refreshed?.renewalDate).not.toBe("2026-09-01");
+        expect(refreshed?.renewalDate).toMatch(/202[6-9]-/);
+    });
+
     it("should format totalMonthlyAmount with compact number notation when amount exceeds 1000", async () => {
         const { result } = await renderHook(() => useSubscriptions(), { wrapper });
 

@@ -135,7 +135,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             if ((partial.startDate !== undefined || partial.renewalDate !== undefined) && partial.daysRemaining === undefined) {
                 const cycle = calculateSubscriptionCycle({
                     startDateInput: merged.startDate,
-                    renewalDateInput: merged.renewalDate,
+                    renewalDateInput: partial.renewalDate !== undefined ? merged.renewalDate : undefined,
                     cadence: merged.billingCycle?.toLowerCase().includes("yearly") ? "Yearly" : "Monthly",
                 });
                 return {

@@ -62,6 +62,26 @@ export function parseDateSafe(input?: string | Date, fallback: Date = new Date()
  * Calculates the next renewal date and real days remaining based on flexible
  * cycle start date, cadence, and optional custom renewal end date.
  */
+/**
+ * Safely adds months to a base date, clamping the day of the month
+ * to the last valid day of the target month (e.g. Jan 31 + 1 mo -> Feb 28/29,
+ * and Jan 31 + 2 mo -> Mar 31), preventing month-end and leap-year drift.
+ */
+export function addMonthsClamped(baseDate: Date, monthsToAdd: number): Date {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth() + monthsToAdd;
+  const day = baseDate.getDate();
+
+  const targetDate = new Date(year, month, 1);
+  const targetYear = targetDate.getFullYear();
+  const targetMonth = targetDate.getMonth();
+
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const clampedDay = Math.min(day, daysInMonth);
+
+  return new Date(targetYear, targetMonth, clampedDay);
+}
+
 export function calculateSubscriptionCycle(
   options?: CalculateCycleOptions
 ): CycleCalculationResult {
@@ -77,18 +97,20 @@ export function calculateSubscriptionCycle(
     // User explicitly customized the ending renewal date
     nextRenewal = parseDateSafe(options.renewalDateInput, new Date(startDate.getTime() + 30 * 86400000));
   } else {
-    // Automatically project the renewal date from the starting date
-    nextRenewal = new Date(startDate);
-
+    // Automatically project the renewal date from the starting date using clamped addition
     if (cadence === "Yearly") {
-      // Advance by 1 year until it is in the future relative to today
+      let yearsAdded = 1;
+      nextRenewal = addMonthsClamped(startDate, yearsAdded * 12);
       while (nextRenewal.getTime() <= startOfDayToday.getTime()) {
-        nextRenewal.setFullYear(nextRenewal.getFullYear() + 1);
+        yearsAdded += 1;
+        nextRenewal = addMonthsClamped(startDate, yearsAdded * 12);
       }
     } else {
-      // Advance by 1 month until it is in the future relative to today
+      let monthsAdded = 1;
+      nextRenewal = addMonthsClamped(startDate, monthsAdded);
       while (nextRenewal.getTime() <= startOfDayToday.getTime()) {
-        nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+        monthsAdded += 1;
+        nextRenewal = addMonthsClamped(startDate, monthsAdded);
       }
     }
   }
@@ -100,7 +122,7 @@ export function calculateSubscriptionCycle(
   );
 
   const diffMs = startOfDayRenewal.getTime() - startOfDayToday.getTime();
-  const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const daysRemaining = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
 
   let cadenceText = `in ${daysRemaining} days`;
   if (daysRemaining === 0) cadenceText = "today";

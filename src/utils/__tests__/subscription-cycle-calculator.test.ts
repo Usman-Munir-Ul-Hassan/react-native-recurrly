@@ -2,10 +2,33 @@ import {
   calculateSubscriptionCycle,
   toIsoDateString,
   parseDateSafe,
+  addMonthsClamped,
 } from "../subscription-cycle-calculator";
 
 describe("subscription-cycle-calculator", () => {
   const referenceToday = new Date(2026, 10, 3); // Nov 3, 2026
+
+  describe("addMonthsClamped", () => {
+    it("clamps month-end dates when target month has fewer days", () => {
+      const jan31 = new Date(2026, 0, 31);
+      const feb = addMonthsClamped(jan31, 1);
+      expect(feb.getFullYear()).toBe(2026);
+      expect(feb.getMonth()).toBe(1); // February
+      expect(feb.getDate()).toBe(28); // 2026 is non-leap year
+
+      const mar = addMonthsClamped(jan31, 2);
+      expect(mar.getFullYear()).toBe(2026);
+      expect(mar.getMonth()).toBe(2); // March
+      expect(mar.getDate()).toBe(31); // Preserves 31st
+    });
+
+    it("clamps August 31 to September 30 without slipping into October", () => {
+      const aug31 = new Date(2026, 7, 31);
+      const sep = addMonthsClamped(aug31, 1);
+      expect(sep.getMonth()).toBe(8); // September
+      expect(sep.getDate()).toBe(30);
+    });
+  });
 
   describe("toIsoDateString", () => {
     it("formats dates as YYYY-MM-DD", () => {
