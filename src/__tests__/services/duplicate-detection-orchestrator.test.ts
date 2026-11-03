@@ -90,6 +90,47 @@ describe("duplicate-detection-orchestrator", () => {
       expect(result.matchedSubscription?.name).toBe("Google Cloud");
     });
 
+    it("flags multi-word typo 'amzaan web servoces' against 'amazon web service' locally (73.7% similarity)", async () => {
+      const customSubs = [
+        {
+          ...mockSubscriptions[0],
+          name: "amzaan web servoces",
+          invoiceEmail: "dev@startup.io",
+        },
+      ];
+
+      const result = await detectDuplicateSubscription({
+        candidateName: "amazon web service",
+        candidateEmail: "dev@startup.io",
+        existingSubscriptions: customSubs,
+        enableAiCheck: false,
+      });
+
+      expect(result.isDuplicate).toBe(true);
+      expect(result.detectedBy).toBe("local");
+      expect(result.matchedSubscription?.name).toBe("amzaan web servoces");
+    });
+
+    it("does not flag genuinely distinct services like GitHub vs GitLab", async () => {
+      const gitSubs = [
+        {
+          ...mockSubscriptions[0],
+          name: "GitHub",
+          invoiceEmail: "dev@startup.io",
+        },
+      ];
+
+      const result = await detectDuplicateSubscription({
+        candidateName: "GitLab",
+        candidateEmail: "dev@startup.io",
+        existingSubscriptions: gitSubs,
+        enableAiCheck: false,
+      });
+
+      expect(result.isDuplicate).toBe(false);
+      expect(result.detectedBy).toBe("none");
+    });
+
     it("ALLOWS duplicate name if the account email is different (Multi-Account Support)", async () => {
       // User already has Google Cloud under work@company.com, now adding for personal@gmail.com
       const result = await detectDuplicateSubscription({

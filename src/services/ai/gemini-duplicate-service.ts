@@ -21,6 +21,7 @@ export async function checkSemanticDuplicateWithGemini(
 ): Promise<GeminiDuplicateResult> {
   // If no API key configured or list is empty, smoothly fallback to local-only
   if (!apiKey || existingNames.length === 0) {
+    console.log("[GeminiService] Skipped check: apiKey configured?", Boolean(apiKey), "existing count:", existingNames.length);
     return {
       isDuplicate: false,
       matchedName: null,
@@ -62,6 +63,7 @@ Respond with a raw JSON object ONLY, no markdown, no backticks:
     clearTimeout(timer);
 
     if (!response.ok) {
+      console.warn(`[GeminiService] API returned error status: ${response.status}`);
       return {
         isDuplicate: false,
         matchedName: null,
@@ -84,6 +86,7 @@ Respond with a raw JSON object ONLY, no markdown, no backticks:
     }
 
     const parsed = JSON.parse(rawText.trim());
+    console.log(`[GeminiService] AI Decision: duplicate=${parsed.isDuplicate}, matched=${parsed.matchedName}`);
     return {
       isDuplicate: Boolean(parsed.isDuplicate),
       matchedName: parsed.matchedName || null,
@@ -93,6 +96,7 @@ Respond with a raw JSON object ONLY, no markdown, no backticks:
     };
   } catch (error) {
     clearTimeout(timer);
+    console.warn(`[GeminiService] Fallback triggered:`, error instanceof Error ? error.message : error);
     // Offline, aborted timeout, or parse failure -> graceful fallback
     return {
       isDuplicate: false,
