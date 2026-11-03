@@ -1,11 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Colors, Radius } from "@/constants/theme";
-import {
-  addMonthsClamped,
-  parseDateSafe,
-  toIsoDateString,
-} from "@/utils/subscription-cycle-calculator";
+import { parseDateSafe, toIsoDateString } from "@/utils/subscription-cycle-calculator";
 
 interface CalendarPickerModalProps {
   visible: boolean;
@@ -86,14 +82,6 @@ export function CalendarPickerModal({
     setViewYear(today.getFullYear());
     setViewMonth(today.getMonth());
     onSelectDate(todayStr);
-  };
-
-  const handlePickLastMonth = () => {
-    const current = parseDateSafe(selectedDate);
-    const prev = addMonthsClamped(current, -1);
-    setViewYear(prev.getFullYear());
-    setViewMonth(prev.getMonth());
-    onSelectDate(toIsoDateString(prev));
   };
 
   return (
@@ -261,7 +249,7 @@ export function CalendarPickerModal({
             })}
           </View>
 
-          {/* Quick Presets & Done Footer */}
+          {/* Footer: Quick "Today" Action & "Done" (Apple/Google Clean Pattern) */}
           <View
             style={{
               flexDirection: "row",
@@ -273,40 +261,22 @@ export function CalendarPickerModal({
               borderTopColor: Colors.fog,
             }}
           >
-            <View style={{ flexDirection: "row", gap: 6 }}>
-              <Pressable
-                onPress={handlePickLastMonth}
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 8,
-                  borderRadius: Radius.tag,
-                  backgroundColor: Colors.limestone,
-                  borderWidth: 1,
-                  borderColor: Colors.fog,
-                }}
-                testID="btn-calendar-last-month"
-              >
-                <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.pitchBlack }}>
-                  -1 Mo
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={handlePickToday}
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 8,
-                  borderRadius: Radius.tag,
-                  backgroundColor: Colors.limestone,
-                  borderWidth: 1,
-                  borderColor: Colors.fog,
-                }}
-                testID="btn-calendar-today"
-              >
-                <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.pitchBlack }}>
-                  Today
-                </Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={handlePickToday}
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: Radius.tag,
+                backgroundColor: Colors.limestone,
+                borderWidth: 1,
+                borderColor: Colors.fog,
+              }}
+              testID="btn-calendar-today"
+            >
+              <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.pitchBlack }}>
+                Today
+              </Text>
+            </Pressable>
 
             <Pressable
               onPress={onClose}

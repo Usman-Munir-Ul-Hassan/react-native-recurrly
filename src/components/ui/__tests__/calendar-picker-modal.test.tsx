@@ -60,45 +60,30 @@ describe("CalendarPickerModal", () => {
     expect(getByText("October 2026")).toBeTruthy();
   });
 
-  it("handles quick presets (-1 Mo and Today)", async () => {
+  it("handles quick Today preset and closes on Done", async () => {
+    const handleClose = jest.fn();
     const handleSelectDate = jest.fn();
-    const { getByTestId } = await render(
+    const { getByTestId, queryByTestId } = await render(
       <CalendarPickerModal
         visible={true}
         selectedDate="2026-10-18"
         onSelectDate={handleSelectDate}
-        onClose={jest.fn()}
+        onClose={handleClose}
       />
     );
 
-    await act(async () => {
-      fireEvent.press(getByTestId("btn-calendar-last-month"));
-    });
-    expect(handleSelectDate).toHaveBeenCalledWith("2026-09-18");
+    // Cryptic -1 Mo button has been removed to match Apple/Google standards
+    expect(queryByTestId("btn-calendar-last-month")).toBeNull();
 
     await act(async () => {
       fireEvent.press(getByTestId("btn-calendar-today"));
     });
     expect(handleSelectDate).toHaveBeenCalled();
-  });
-
-  it("clamps month-end date for -1 Mo preset from March 31 to February 28", async () => {
-    const handleSelectDate = jest.fn();
-    const { getByTestId } = await render(
-      <CalendarPickerModal
-        visible={true}
-        selectedDate="2026-03-31"
-        onSelectDate={handleSelectDate}
-        onClose={jest.fn()}
-      />
-    );
 
     await act(async () => {
-      fireEvent.press(getByTestId("btn-calendar-last-month"));
+      fireEvent.press(getByTestId("btn-calendar-done"));
     });
-
-    // In 2026, Feb has 28 days; must be clamped to Feb 28, not Mar 3
-    expect(handleSelectDate).toHaveBeenCalledWith("2026-02-28");
+    expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
   it("resets view month when reopening the modal with a new selectedDate", async () => {
