@@ -1,27 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors, Radius } from "@/constants/theme";
+import { getSubscriptionCurrency } from "@/types/subscription";
 import { useSubscriptions } from "@/context/subscription-context";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { usePreferences } from "@/context/preferences-context";
 import { AppButton } from "@/components/ui/app-button";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { AddSubscriptionModal } from "@/components/subscription/add-subscription-modal";
+import { StatusPickerModal, SubscriptionStatus } from "@/components/subscription/status-picker-modal";
 
 export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { photoUrl, initials: userInitials } = useUserProfile();
+  const { imageUrl, initials: userInitials } = useUserProfile();
+  const { formatPrice } = usePreferences();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const {
+    subscriptions,
     getSubscription,
     cancelSubscription,
     pauseSubscription,
     resumeSubscription,
     deleteSubscription,
+    updateSubscription,
   } = useSubscriptions();
 
-  const subscription = getSubscription(id);
+  const liveSubscription = getSubscription(id);
+  const [cachedSubscription, setCachedSubscription] = useState(liveSubscription);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sync cache when live subscription is updated
+  if (liveSubscription && liveSubscription !== cachedSubscription) {
+    setCachedSubscription(liveSubscription);
+  }
+
+  // Gracefully retain cached subscription during screen exit transition on deletion
+  const subscription = isDeleting ? cachedSubscription : liveSubscription;
 
   if (!subscription) {
     return (
@@ -29,7 +49,7 @@ export default function SubscriptionDetailScreen() {
         <Text style={{ fontSize: 16, color: Colors.pitchBlack, marginBottom: 16 }}>
           Subscription not found
         </Text>
-        <AppButton title="← Back to Subscriptions" onPress={() => router.back()} />
+        <AppButton title="Back to Subscriptions" showArrow={false} onPress={() => router.back()} />
       </SafeAreaView>
     );
   }
@@ -37,47 +57,24 @@ export default function SubscriptionDetailScreen() {
   const isCancelled = subscription.status === "Cancelled";
   const isPaused = subscription.status === "Paused";
 
-  const handleCancel = () => {
-    Alert.alert(
-      "Cancel Subscription",
-      `Are you sure you want to cancel your ${subscription.name} subscription?`,
-      [
-        { text: "Keep Subscription", style: "cancel" },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: () => {
-            cancelSubscription(subscription.id);
-            Alert.alert("Subscription Cancelled", `${subscription.name} has been cancelled.`);
-          },
-        },
-      ]
-    );
-  };
+  const handleSelectStatus = (newStatus: SubscriptionStatus) => {
+    if (newStatus === subscription.status) return;
 
-  const handleTogglePause = () => {
-    if (isPaused) {
+    if (newStatus === "Active") {
       resumeSubscription(subscription.id);
       Alert.alert("Subscription Resumed", `${subscription.name} is now active.`);
-    } else {
-      Alert.alert(
-        "Pause Subscription",
-        `Do you want to pause your ${subscription.name} subscription? You can resume it anytime.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Pause",
-            onPress: () => {
-              pauseSubscription(subscription.id);
-              Alert.alert("Subscription Paused", `${subscription.name} has been paused.`);
-            },
-          },
-        ]
-      );
+    } else if (newStatus === "Paused") {
+      pauseSubscription(subscription.id);
+      Alert.alert("Subscription Paused", `${subscription.name} has been paused.`);
+    } else if (newStatus === "Cancelled") {
+      cancelSubscription(subscription.id);
+      Alert.alert("Subscription Cancelled", `${subscription.name} has been cancelled.`);
     }
   };
 
   const handleDelete = () => {
+    if (isDeleting || !subscription) return;
+
     Alert.alert(
       "Delete Subscription",
       `Are you sure you want to permanently remove ${subscription.name} from your chronicle?`,
@@ -87,8 +84,9 @@ export default function SubscriptionDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteSubscription(subscription.id);
+            setIsDeleting(true);
             router.back();
+            deleteSubscription(subscription.id);
           },
         },
       ]
@@ -124,7 +122,22 @@ export default function SubscriptionDetailScreen() {
     }
   };
 
+  const subCurrency = subscription ? getSubscriptionCurrency(subscription) : undefined;
+  const displayPrice = subscription
+    ? formatPrice(subscription.amountNumeric, subscription.cadence, subCurrency)
+    : "";
+
+  const cleanRenewalDate = subscription?.renewalDateShort?.replace(/^Renews\s*/i, "") || "";
+  const statusSubtitle = isCancelled
+    ? "Discontinued"
+    : isPaused
+    ? "Subscription paused"
+    : cleanRenewalDate
+    ? `Renews ${cleanRenewalDate}`
+    : "Active";
+
   const handleShareReceipt = async () => {
+    if (!subscription) return;
     const receiptText = [
       `===============================`,
       `       CHRONICLE RECEIPT       `,
@@ -132,7 +145,7 @@ export default function SubscriptionDetailScreen() {
       `Service:        ${subscription.name}`,
       `Category:       ${subscription.category}`,
       `Status:         ${subscription.status}`,
-      `Monthly Amount: ${subscription.price}`,
+      `Amount:         ${displayPrice}`,
       `Billing Cycle:  ${subscription.billingCycle}`,
       `Next Renewal:   ${subscription.nextRenewalFull}`,
       `Payment Method: ${subscription.paymentMethod}`,
@@ -153,6 +166,7 @@ export default function SubscriptionDetailScreen() {
   };
 
   const detailsRows = [
+    { label: "Cycle started", value: subscription.startDate || "Active anchor" },
     { label: "Billing cycle", value: subscription.billingCycle },
     { label: "Next renewal", value: subscription.nextRenewalFull },
     { label: "Payment method", value: subscription.paymentMethod },
@@ -169,16 +183,29 @@ export default function SubscriptionDetailScreen() {
           hitSlop={12}
           className="flex-row items-center py-1"
         >
-          <Text style={{ fontSize: 18, color: Colors.pitchBlack, marginRight: 6 }}>
-            ←
-          </Text>
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={Colors.pitchBlack}
+            style={{ marginRight: 6 }}
+          />
           <Text style={{ fontSize: 13, fontWeight: "500", color: Colors.pitchBlack }}>
             Subscriptions
           </Text>
         </Pressable>
 
-        {/* Real User Profile Avatar */}
-        <UserAvatar photoUrl={photoUrl} initials={userInitials} size={30} />
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={handleShareReceipt}
+            hitSlop={10}
+            style={{ padding: 6, marginRight: 8 }}
+            accessibilityLabel="Share Receipt"
+          >
+            <Ionicons name="share-outline" size={20} color={Colors.pitchBlack} />
+          </Pressable>
+          {/* Real User Profile Avatar */}
+          <UserAvatar imageUrl={imageUrl} initials={userInitials} size={30} />
+        </View>
       </View>
 
       <ScrollView
@@ -228,46 +255,84 @@ export default function SubscriptionDetailScreen() {
                 color: Colors.graphite,
               }}
             >
-              {subscription.price} • {subscription.cadence}
+              {displayPrice} • {subscription.cadence}
             </Text>
           </View>
         </View>
 
-        {/* Status & Billing Tag Row */}
-        <View className="flex-row items-center mb-6">
-          <View
-            className="px-2.5 py-1 mr-3"
-            style={{
-              backgroundColor: isCancelled
-                ? "#FEE2E2"
-                : isPaused
-                ? "#FEF3C7"
-                : Colors.limestone,
-              borderRadius: Radius.tag,
-            }}
-          >
-            <Text
+        {/* Interactive Status Selector Card */}
+        <Pressable
+          onPress={() => setIsStatusModalOpen(true)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: "#F9FAFB",
+            borderWidth: 1,
+            borderColor: Colors.fog,
+            borderRadius: 12,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            marginBottom: 20,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`Subscription status: ${subscription.status}. Tap to change status`}
+          testID="btn-open-status-picker"
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View
               style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: isCancelled
-                  ? "#991B1B"
+                backgroundColor: isCancelled
+                  ? "#FEF2F2"
                   : isPaused
-                  ? "#92400E"
-                  : Colors.pitchBlack,
+                  ? "#FFFBEB"
+                  : "#ECFDF5",
+                borderWidth: 1,
+                borderColor: isCancelled
+                  ? "#FECACA"
+                  : isPaused
+                  ? "#FDE68A"
+                  : "#A7F3D0",
+                borderRadius: Radius.tag,
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                marginRight: 10,
               }}
             >
-              {subscription.status}
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: isCancelled
+                    ? "#991B1B"
+                    : isPaused
+                    ? "#92400E"
+                    : "#065F46",
+                }}
+              >
+                {subscription.status}
+              </Text>
+            </View>
+
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 13,
+                color: Colors.graphite,
+                flex: 1,
+              }}
+            >
+              {statusSubtitle}
             </Text>
           </View>
-          <Text style={{ fontSize: 13, color: Colors.graphite }}>
-            {isCancelled
-              ? "Subscription discontinued"
-              : isPaused
-              ? "Subscription paused"
-              : `Renews ${subscription.renewalDateShort}`}
-          </Text>
-        </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={{ fontSize: 11, color: Colors.ash, marginRight: 4, fontWeight: "500" }}>
+              Change
+            </Text>
+            <Ionicons name="chevron-down" size={15} color={Colors.graphite} />
+          </View>
+        </Pressable>
 
         {/* Subscription Details Table Card */}
         <View
@@ -323,44 +388,35 @@ export default function SubscriptionDetailScreen() {
         {/* Action Buttons */}
         <View className="gap-3">
           <AppButton
-            title="Manage subscription →"
+            title="Edit Subscription & Cycle"
+            showArrow={false}
+            onPress={() => setIsEditModalOpen(true)}
+          />
+
+          <Pressable
             onPress={handleManage}
-          />
-
-          <AppButton
-            title="Share / View Invoice Receipt"
-            variant="secondary"
-            onPress={handleShareReceipt}
-          />
-
-          {!isCancelled && (
-            <AppButton
-              title={isPaused ? "Resume subscription" : "Pause subscription"}
-              variant="secondary"
-              onPress={handleTogglePause}
-            />
-          )}
-
-          {!isCancelled && (
-            <Pressable
-              onPress={handleCancel}
-              className="items-center py-2 mt-1"
+            className="flex-row items-center justify-center py-3 px-4 border border-[#E2E2E2]"
+            style={{
+              backgroundColor: Colors.limestone,
+              borderRadius: Radius.card,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: Colors.pitchBlack,
+                marginRight: 6,
+              }}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "500",
-                  color: "#DC2626",
-                }}
-              >
-                Cancel subscription
-              </Text>
-            </Pressable>
-          )}
+              Manage on {subscription.name} website
+            </Text>
+            <Ionicons name="open-outline" size={15} color={Colors.pitchBlack} />
+          </Pressable>
 
           <Pressable
             onPress={handleDelete}
-            className="items-center py-2"
+            className="items-center py-2 mt-1"
           >
             <Text
               style={{
@@ -374,6 +430,26 @@ export default function SubscriptionDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <AddSubscriptionModal
+        visible={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialSubscription={subscription}
+        existingSubscriptions={subscriptions}
+        onAdd={() => {}}
+        onUpdate={(updated) => {
+          updateSubscription(subscription.id, updated);
+          Alert.alert("Subscription Updated", `${updated.name} has been updated.`);
+        }}
+      />
+
+      <StatusPickerModal
+        visible={isStatusModalOpen}
+        currentStatus={subscription.status as SubscriptionStatus}
+        subscriptionName={subscription.name}
+        onSelectStatus={handleSelectStatus}
+        onClose={() => setIsStatusModalOpen(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import { useUser } from "@clerk/expo";
-import { Subscription } from "@/types/subscription";
+import { getSubscriptionCurrency, Subscription } from "@/types/subscription";
 import { MOCK_SUBSCRIPTIONS } from "@/data/subscriptions.data";
 import {
     loadSubscriptionsFromUser,
@@ -8,6 +8,7 @@ import {
 } from "@/services/subscription/clerk-subscription-storage";
 import { useRenewalNotifications } from "@/hooks/use-renewal-notifications";
 import { usePreferences } from "@/context/preferences-context";
+import { calculateSubscriptionCycle } from "@/utils/subscription-cycle-calculator";
 
 interface SubscriptionContextType {
     subscriptions: Subscription[];
@@ -21,6 +22,7 @@ interface SubscriptionContextType {
     resumeSubscription: (id: string) => void;
     deleteSubscription: (id: string) => void;
     addSubscription: (newSub: Subscription) => void;
+    updateSubscription: (id: string, partial: Partial<Subscription>) => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -54,7 +56,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return MOCK_SUBSCRIPTIONS;
     }, [activeOverride, isUserLoaded, user]);
 
-    const { alertsEnabled } = usePreferences();
+    const { alertsEnabled, formatCompactPrice, convertAmount, currency } = usePreferences();
 
     // Automatically monitors subscriptions and schedules/dispatches 1-day alerts if enabled
     useRenewalNotifications(subscriptions, { enabled: alertsEnabled });
@@ -69,10 +71,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     const totalMonthlyAmount = useMemo(() => {
         const total = activeSubs.reduce((sum, item) => {
-            return sum + (item.amountNumeric || parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0);
+            const inUserCurrency = convertAmount(item.amountNumeric, getSubscriptionCurrency(item));
+            return sum + (inUserCurrency || 0);
         }, 0);
-        return `$${total.toFixed(2)}`;
-    }, [activeSubs]);
+        return formatCompactPrice(total, undefined, currency).replace(/\/mo|\/yr/, "");
+    }, [activeSubs, formatCompactPrice, convertAmount, currency]);
 
     const nextRenewalDate =
         activeSubs[0]?.renewalDateShort?.replace("Renews ", "") || "Nov 1";
@@ -125,6 +128,31 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         void updateAndSync(updated);
     };
 
+    const updateSubscription = (id: string, partial: Partial<Subscription>) => {
+        const updated = subscriptions.map((sub) => {
+            if (sub.id !== id) return sub;
+            const merged = { ...sub, ...partial };
+            if ((partial.startDate !== undefined || partial.renewalDate !== undefined) && partial.daysRemaining === undefined) {
+                const cycle = calculateSubscriptionCycle({
+                    startDateInput: merged.startDate,
+                    renewalDateInput: partial.renewalDate !== undefined ? merged.renewalDate : undefined,
+                    cadence: merged.billingCycle?.toLowerCase().includes("yearly") ? "Yearly" : "Monthly",
+                });
+                return {
+                    ...merged,
+                    startDate: cycle.startDate,
+                    renewalDate: cycle.renewalDate,
+                    renewalDateShort: cycle.renewalDateShort,
+                    nextRenewalFull: cycle.nextRenewalFull,
+                    daysRemaining: cycle.daysRemaining,
+                    cadence: cycle.cadenceText,
+                };
+            }
+            return merged;
+        });
+        void updateAndSync(updated);
+    };
+
     return (
         <SubscriptionContext.Provider
             value={{
@@ -139,6 +167,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
                 resumeSubscription,
                 deleteSubscription,
                 addSubscription,
+                updateSubscription,
             }}
         >
             {children}

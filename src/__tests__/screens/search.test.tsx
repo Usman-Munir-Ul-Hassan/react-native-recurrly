@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent, act } from "@testing-library/react-native";
-import SearchScreen from "../search";
+import SearchScreen from "@/app/search";
 
 // Mock router
 const mockBack = jest.fn();

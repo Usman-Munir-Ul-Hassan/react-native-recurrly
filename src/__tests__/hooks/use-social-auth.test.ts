@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react-native";
 import { Alert } from "react-native";
-import { useSocialAuth, SOCIAL_STRATEGIES, getRedirectUrl } from "../use-social-auth";
+import { useSocialAuth, SOCIAL_STRATEGIES, getRedirectUrl } from "@/hooks/use-social-auth";
 
 // Mock router
 const mockReplace = jest.fn();

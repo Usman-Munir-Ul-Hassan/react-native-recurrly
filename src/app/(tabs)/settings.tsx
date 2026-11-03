@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useClerk } from "@clerk/expo";
-import * as Notifications from "expo-notifications";
 import { Colors, Radius } from "@/constants/theme";
 import { SettingSection } from "@/types/settings";
 import { SettingsSectionCard } from "@/components/settings/settings-section-card";
@@ -23,7 +22,10 @@ import {
   SUPPORTED_CURRENCIES,
 } from "@/utils/currency-formatter";
 import { exportAndShareSubscriptionsCsv } from "@/services/subscription/csv-export-service";
-import { requestNotificationPermissions } from "@/services/notification/renewal-notification-service";
+import {
+  getNotificationsModule,
+  requestNotificationPermissions,
+} from "@/services/notification/renewal-notification-service";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -38,12 +40,19 @@ export default function SettingsScreen() {
     setAlertsEnabled,
   } = usePreferences();
 
-  const [notificationStatus, setNotificationStatus] = useState<string>("Checking...");
+  const [notificationStatus, setNotificationStatus] = useState<string>(() =>
+    getNotificationsModule() ? "Checking..." : "Unavailable"
+  );
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
 
   // Check actual device permission on mount
   useEffect(() => {
     let isMounted = true;
+    const Notifications = getNotificationsModule();
+    if (!Notifications) {
+      return;
+    }
+
     Notifications.getPermissionsAsync()
       .then(({ status }) => {
         if (isMounted) {

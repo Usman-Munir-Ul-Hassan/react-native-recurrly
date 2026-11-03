@@ -4,14 +4,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, Radius } from "@/constants/theme";
 import { useSubscriptions } from "@/context/subscription-context";
 import { usePreferences } from "@/context/preferences-context";
+import { getSubscriptionCurrency } from "@/types/subscription";
 import { calculateAnalytics } from "@/services/subscription/analytics-calculator";
+import { formatCompactNumber } from "@/utils/compact-currency-formatter";
 
 export default function AnalyticsScreen() {
   const { subscriptions } = useSubscriptions();
-  const { currencySymbol } = usePreferences();
+  const { currencySymbol, convertAmount } = usePreferences();
 
-  // All financial calculations delegated to pure analytics engine
-  const stats = useMemo(() => calculateAnalytics(subscriptions), [subscriptions]);
+  // Financial calculations normalized into active currency based on each subscription's source currency
+  const stats = useMemo(() => {
+    const normalizedSubs = subscriptions.map((sub) => ({
+      ...sub,
+      amountNumeric: convertAmount(sub.amountNumeric, getSubscriptionCurrency(sub)),
+    }));
+    return calculateAnalytics(normalizedSubs);
+  }, [subscriptions, convertAmount]);
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.canvas }}>
@@ -67,7 +75,7 @@ export default function AnalyticsScreen() {
                 fontVariant: ["tabular-nums"],
               }}
             >
-              {currencySymbol}{stats.annualTotal.toFixed(2)}
+              {currencySymbol}{formatCompactNumber(stats.annualTotal)}
             </Text>
             <Text style={{ fontSize: 14, color: Colors.graphite, marginLeft: 6 }}>
               / year
@@ -99,7 +107,7 @@ export default function AnalyticsScreen() {
                   fontVariant: ["tabular-nums"],
                 }}
               >
-                {currencySymbol}{stats.monthlyTotal.toFixed(2)}
+                {currencySymbol}{formatCompactNumber(stats.monthlyTotal)}
               </Text>
             </View>
 
@@ -119,7 +127,7 @@ export default function AnalyticsScreen() {
                   fontVariant: ["tabular-nums"],
                 }}
               >
-                {currencySymbol}{stats.averagePerSub.toFixed(2)}
+                {currencySymbol}{formatCompactNumber(stats.averagePerSub)}
               </Text>
             </View>
 
@@ -199,7 +207,7 @@ export default function AnalyticsScreen() {
               }}
             >
               <Text style={{ fontSize: 12, color: "#166534", fontWeight: "600" }}>
-                ✓ Saving {currencySymbol}{stats.monthlySavings.toFixed(2)}/mo on paused & cancelled services
+                ✓ Saving {currencySymbol}{formatCompactNumber(stats.monthlySavings)}/mo on paused & cancelled services
               </Text>
             </View>
           ) : null}
@@ -232,7 +240,7 @@ export default function AnalyticsScreen() {
                   {stats.topExpense.name}
                 </Text>
                 <Text style={{ fontSize: 12, color: Colors.graphite, marginTop: 2 }}>
-                  {currencySymbol}{stats.topExpense.amount.toFixed(2)}/mo
+                  {currencySymbol}{formatCompactNumber(stats.topExpense.amount)}/mo
                 </Text>
               </View>
             ) : null}
@@ -326,7 +334,7 @@ export default function AnalyticsScreen() {
                         fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {currencySymbol}{item.total.toFixed(2)}
+                      {currencySymbol}{formatCompactNumber(item.total)}
                     </Text>
                     <Text style={{ fontSize: 12, color: Colors.graphite, marginLeft: 6 }}>
                       ({item.percentage}%)

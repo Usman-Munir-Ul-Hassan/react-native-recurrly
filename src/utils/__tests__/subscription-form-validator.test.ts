@@ -2,6 +2,7 @@ import {
   validateSubscriptionForm,
   generateInitials,
   buildNewSubscription,
+  buildUpdatedSubscription,
 } from "../subscription-form-validator";
 
 describe("subscription-form-validator", () => {
@@ -97,6 +98,55 @@ describe("subscription-form-validator", () => {
       expect(sub.price).toBe("€120.00/yr");
       expect(sub.daysRemaining).toBe(365);
       expect(sub.billingCycle).toBe("Yearly (renews automatically)");
+    });
+
+    it("supports custom start date from previous month and calculates renewal", () => {
+      // Today is Nov 3, 2026. Started on Oct 18, 2026.
+      const referenceToday = new Date(2026, 10, 3);
+      const sub = buildNewSubscription(
+        {
+          name: "Netflix",
+          price: "15.99",
+          category: "Entertainment",
+          billingCadence: "Monthly",
+          startDate: "2026-10-18",
+        },
+        { customDate: referenceToday }
+      );
+
+      expect(sub.startDate).toBe("2026-10-18");
+      expect(sub.renewalDate).toBe("2026-11-18");
+      expect(sub.daysRemaining).toBe(15);
+      expect(sub.renewalDateShort).toBe("Renews Nov 18");
+    });
+  });
+
+  describe("buildUpdatedSubscription", () => {
+    it("updates price, cadence, and recalculates cycle while preserving ID", () => {
+      const existing = buildNewSubscription({
+        name: "Spotify",
+        price: "9.99",
+        category: "Entertainment",
+        billingCadence: "Monthly",
+        startDate: "2026-10-18",
+      });
+
+      const updated = buildUpdatedSubscription({
+        existing,
+        name: "Spotify Duo",
+        price: "14.99",
+        category: "Entertainment",
+        cadence: "Monthly",
+        paymentMethod: "Apple Pay",
+        startDate: "2026-10-18",
+      });
+
+      expect(updated.id).toBe(existing.id);
+      expect(updated.name).toBe("Spotify Duo");
+      expect(updated.amountNumeric).toBe(14.99);
+      expect(updated.price).toBe("$14.99/mo");
+      expect(updated.paymentMethod).toBe("Apple Pay");
+      expect(updated.startDate).toBe("2026-10-18");
     });
   });
 });

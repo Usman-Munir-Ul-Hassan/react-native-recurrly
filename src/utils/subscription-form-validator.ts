@@ -1,5 +1,7 @@
 import { Subscription } from "@/types/subscription";
+import { CurrencyCode } from "@/types/preferences";
 import { resolveBrandIconUrl } from "@/services/subscription/brand-icon-service";
+import { calculateSubscriptionCycle } from "@/utils/subscription-cycle-calculator";
 
 export interface SubscriptionFormInput {
   name: string;
@@ -8,9 +10,12 @@ export interface SubscriptionFormInput {
   billingCadence?: "Monthly" | "Yearly";
   billingCycle?: string;
   currencySymbol?: string;
+  currency?: CurrencyCode;
   paymentMethod?: string;
   invoiceEmail?: string;
   logoUrl?: string;
+  startDate?: string;
+  renewalDate?: string;
 }
 
 export interface ValidationResult {
@@ -58,25 +63,6 @@ export function generateInitials(name: string): string {
 }
 
 /**
- * Formats date into "Nov 1" style string.
- */
-function formatShortDate(date: Date): string {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[date.getMonth()]} ${date.getDate()}`;
-}
-
-/**
- * Formats date into "November 1, 2026" style string.
- */
-function formatFullDate(date: Date): string {
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
-
-/**
  * Builds a complete Subscription object from validated form input.
  */
 export function buildNewSubscription(
@@ -94,10 +80,12 @@ export function buildNewSubscription(
   const slug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
   const id = `sub-${Date.now()}-${slug || "custom"}`;
 
-  // Renewal date: 365 days for yearly, 30 days for monthly
-  const baseDate = options?.customDate ?? new Date();
-  const daysRemaining = isYearly ? 365 : 30;
-  const renewalDate = new Date(baseDate.getTime() + daysRemaining * 24 * 60 * 60 * 1000);
+  const cycle = calculateSubscriptionCycle({
+    startDateInput: input.startDate,
+    renewalDateInput: input.renewalDate,
+    cadence: input.billingCadence,
+    referenceToday: options?.customDate,
+  });
 
   return {
     id,
@@ -108,12 +96,69 @@ export function buildNewSubscription(
     category: input.category || "General",
     price: formattedPrice,
     amountNumeric,
-    cadence: `in ${daysRemaining} days`,
-    daysRemaining,
-    renewalDateShort: `Renews ${formatShortDate(renewalDate)}`,
-    nextRenewalFull: `${formatFullDate(renewalDate)} (in ${daysRemaining} days)`,
+    cadence: cycle.cadenceText,
+    daysRemaining: cycle.daysRemaining,
+    renewalDateShort: cycle.renewalDateShort,
+    nextRenewalFull: cycle.nextRenewalFull,
     billingCycle: input.billingCycle || (isYearly ? "Yearly (renews automatically)" : "Monthly (renews automatically)"),
     paymentMethod: input.paymentMethod || "Apple Pay",
     invoiceEmail: input.invoiceEmail || "user@chronicle.app",
+    startDate: cycle.startDate,
+    renewalDate: cycle.renewalDate,
+    currency: input.currency || "USD",
   };
 }
+
+export interface UpdateSubscriptionInput {
+  existing: Subscription;
+  name: string;
+  price: string;
+  category: string;
+  cadence: "Monthly" | "Yearly";
+  paymentMethod: string;
+  startDate: string;
+  renewalDate?: string;
+  currencySymbol?: string;
+  currency?: CurrencyCode;
+  logoUrl?: string;
+}
+
+/**
+ * Builds an updated Subscription object preserving existing immutable attributes
+ * while synchronizing recalculated billing cycle dates and metrics.
+ */
+export function buildUpdatedSubscription(input: UpdateSubscriptionInput): Subscription {
+  const cleanName = input.name.trim();
+  const rawPrice = input.price.trim().replace(/[^0-9.]/g, "");
+  const amountNumeric = parseFloat(rawPrice);
+  const symbol = input.currencySymbol || "$";
+  const isYearly = input.cadence === "Yearly";
+  const cycleSuffix = isYearly ? "/yr" : "/mo";
+  const formattedPrice = `${symbol}${amountNumeric.toFixed(2)}${cycleSuffix}`;
+
+  const cycle = calculateSubscriptionCycle({
+    startDateInput: input.startDate,
+    renewalDateInput: input.renewalDate,
+    cadence: input.cadence,
+  });
+
+  return {
+    ...input.existing,
+    name: cleanName,
+    initials: generateInitials(cleanName),
+    price: formattedPrice,
+    amountNumeric,
+    category: input.category,
+    paymentMethod: input.paymentMethod,
+    billingCycle: isYearly ? "Yearly (renews automatically)" : "Monthly (renews automatically)",
+    startDate: cycle.startDate,
+    renewalDate: cycle.renewalDate,
+    renewalDateShort: cycle.renewalDateShort,
+    nextRenewalFull: cycle.nextRenewalFull,
+    daysRemaining: cycle.daysRemaining,
+    cadence: cycle.cadenceText,
+    logoUrl: input.logoUrl ?? resolveBrandIconUrl(cleanName),
+    currency: input.currency ?? input.existing.currency ?? "USD",
+  };
+}
+

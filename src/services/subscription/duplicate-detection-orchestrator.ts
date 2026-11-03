@@ -1,0 +1,122 @@
+import { Subscription } from "@/types/subscription";
+import { isFuzzyMatch } from "@/utils/fuzzy-matcher";
+import {
+  checkSemanticDuplicateWithGemini,
+  GeminiDuplicateResult,
+} from "@/services/ai/gemini-duplicate-service";
+
+export interface DuplicateDetectionOptions {
+  candidateName: string;
+  candidateEmail: string;
+  existingSubscriptions: Subscription[];
+  enableAiCheck?: boolean;
+  geminiApiKey?: string;
+  // Optional dependency injection for testing
+  aiServiceFn?: (
+    candidateName: string,
+    existingNames: string[],
+    apiKey?: string
+  ) => Promise<GeminiDuplicateResult>;
+}
+
+export interface DuplicateDetectionResult {
+  isDuplicate: boolean;
+  matchedSubscription?: Subscription;
+  detectedBy: "local" | "ai" | "none";
+  reason?: string;
+}
+
+/**
+ * Normalizes email strings for safe case-insensitive comparison.
+ */
+export function normalizeEmail(email?: string): string {
+  return (email || "").trim().toLowerCase();
+}
+
+/**
+ * Orchestrator that detects duplicate subscriptions:
+ * 1. Multi-account distinction: Different emails are always allowed.
+ * 2. Local-first fuzzy check (0ms, offline-safe): Catches typos like "Cload" vs "Cloud".
+ * 3. AI semantic check (Gemini Flash): Catches brand acronyms like "AWS" vs "Amazon Web Services".
+ */
+export async function detectDuplicateSubscription({
+  candidateName,
+  candidateEmail,
+  existingSubscriptions,
+  enableAiCheck = true,
+  geminiApiKey,
+  aiServiceFn = checkSemanticDuplicateWithGemini,
+}: DuplicateDetectionOptions): Promise<DuplicateDetectionResult> {
+  const normalizedCandidateEmail = normalizeEmail(candidateEmail);
+  const trimmedCandidateName = candidateName.trim();
+
+  if (!trimmedCandidateName) {
+    return { isDuplicate: false, detectedBy: "none" };
+  }
+
+  // Filter only existing subscriptions belonging to the same account/email.
+  // Subscriptions with a different email are distinct accounts and permitted.
+  const sameAccountSubscriptions = existingSubscriptions.filter((sub) => {
+    const subEmail = normalizeEmail(sub.invoiceEmail);
+    // If either has an email, compare them; if both empty, treat as same account
+    return subEmail === normalizedCandidateEmail;
+  });
+
+  console.log(`[DuplicateCheck] Evaluating candidate: "${trimmedCandidateName}" for account: "${normalizedCandidateEmail}"`);
+  console.log(`[DuplicateCheck] Found ${sameAccountSubscriptions.length} existing subscriptions under this account:`, sameAccountSubscriptions.map(s => s.name));
+
+  if (sameAccountSubscriptions.length === 0) {
+    return { isDuplicate: false, detectedBy: "none" };
+  }
+
+  // --- Step 1: Local Fast-Path Fuzzy Matching (0ms, 100% Free) ---
+  // Threshold of 0.72 catches multi-word typo combinations while safely rejecting different services
+  for (const sub of sameAccountSubscriptions) {
+    if (isFuzzyMatch(trimmedCandidateName, sub.name, 0.72)) {
+      console.log(`[DuplicateCheck] Local match detected! "${trimmedCandidateName}" is duplicate of "${sub.name}"`);
+      return {
+        isDuplicate: true,
+        matchedSubscription: sub,
+        detectedBy: "local",
+        reason: `A subscription for "${sub.name}" already exists for account ${candidateEmail}`,
+      };
+    }
+  }
+
+  // --- Step 2: Gemini AI Semantic Check (Acronyms & Synonyms) ---
+  if (enableAiCheck) {
+    const existingNames = sameAccountSubscriptions.map((s) => s.name);
+    console.log(`[DuplicateCheck] No local match. Querying Gemini AI for "${trimmedCandidateName}" against:`, existingNames);
+    try {
+      const aiResult = await aiServiceFn(
+        trimmedCandidateName,
+        existingNames,
+        geminiApiKey
+      );
+      console.log(`[DuplicateCheck] Gemini AI response:`, aiResult);
+
+      if (aiResult.isDuplicate && aiResult.matchedName) {
+        const matchedSub =
+          sameAccountSubscriptions.find(
+            (s) =>
+              s.name.toLowerCase() === aiResult.matchedName?.toLowerCase() ||
+              isFuzzyMatch(s.name, aiResult.matchedName || "", 0.72) ||
+              s.name.toLowerCase().includes(aiResult.matchedName?.toLowerCase() || "") ||
+              (aiResult.matchedName || "").toLowerCase().includes(s.name.toLowerCase())
+          ) || sameAccountSubscriptions[0];
+
+        return {
+          isDuplicate: true,
+          matchedSubscription: matchedSub,
+          detectedBy: "ai",
+          reason: aiResult.reason || `AI detected duplicate service: ${aiResult.matchedName}`,
+        };
+      }
+    } catch (err) {
+      console.warn(`[DuplicateCheck] AI check error/fallback:`, err);
+      // Graceful degradation: AI failure never crashes the application
+    }
+  }
+
+  return { isDuplicate: false, detectedBy: "none" };
+}
