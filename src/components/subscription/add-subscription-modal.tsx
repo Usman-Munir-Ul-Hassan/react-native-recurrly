@@ -11,7 +11,8 @@ import {
   View,
 } from "react-native";
 import { Colors, Radius } from "@/constants/theme";
-import { Subscription } from "@/types/subscription";
+import { getSubscriptionCurrency, Subscription } from "@/types/subscription";
+import { getCurrencySymbol } from "@/utils/currency-formatter";
 import {
   PAYMENT_METHODS,
   SUBSCRIPTION_CATEGORIES,
@@ -49,8 +50,12 @@ export function AddSubscriptionModal({
   initialSubscription,
   userEmail,
 }: AddSubscriptionModalProps) {
-  const { currency, currencySymbol } = usePreferences();
+  const { currency: prefCurrency, currencySymbol: prefCurrencySymbol } = usePreferences();
   const isEditMode = Boolean(initialSubscription);
+  const activeCurrency =
+    isEditMode && initialSubscription ? getSubscriptionCurrency(initialSubscription) : prefCurrency;
+  const activeCurrencySymbol =
+    isEditMode && initialSubscription ? getCurrencySymbol(activeCurrency) : prefCurrencySymbol;
   const defaultToday = useMemo(() => toIsoDateString(new Date()), []);
 
   const [name, setName] = useState(initialSubscription?.name ?? "");
@@ -65,13 +70,14 @@ export function AddSubscriptionModal({
     initialSubscription?.paymentMethod ?? "Card"
   );
   const [startDate, setStartDate] = useState(initialSubscription?.startDate ?? defaultToday);
-  const [renewalDate, setRenewalDate] = useState(initialSubscription?.renewalDate ?? "");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
 
-  // Sync state if initialSubscription changes while modal is mounted
+  // Sync state whenever modal becomes visible or initialSubscription changes
+  const [prevVisible, setPrevVisible] = useState(false);
   const [prevSubId, setPrevSubId] = useState(initialSubscription?.id);
-  if (initialSubscription?.id !== prevSubId) {
+  if ((visible && !prevVisible) || initialSubscription?.id !== prevSubId) {
+    setPrevVisible(visible);
     setPrevSubId(initialSubscription?.id);
     setName(initialSubscription?.name ?? "");
     setPrice(
@@ -83,8 +89,9 @@ export function AddSubscriptionModal({
     setCategory(initialSubscription?.category ?? "General");
     setPaymentMethod(initialSubscription?.paymentMethod ?? "Card");
     setStartDate(initialSubscription?.startDate ?? defaultToday);
-    setRenewalDate(initialSubscription?.renewalDate ?? "");
     setErrors({});
+  } else if (!visible && prevVisible) {
+    setPrevVisible(false);
   }
 
   const iconPreviewUrl = useMemo(() => resolveBrandIconUrl(name), [name]);
@@ -94,10 +101,9 @@ export function AddSubscriptionModal({
   const cycle = useMemo(() => {
     return calculateSubscriptionCycle({
       startDateInput: startDate,
-      renewalDateInput: renewalDate || undefined,
       cadence,
     });
-  }, [startDate, renewalDate, cadence]);
+  }, [startDate, cadence]);
 
   const recurrenceNote = useMemo(() => {
     return formatRecurrenceNote({
@@ -115,7 +121,6 @@ export function AddSubscriptionModal({
     setCategory("General");
     setPaymentMethod("Card");
     setStartDate(defaultToday);
-    setRenewalDate("");
     setErrors({});
     setIsCalendarOpen(false);
     onClose();
@@ -123,11 +128,6 @@ export function AddSubscriptionModal({
 
   const handleSelectStartDate = (selectedStr: string) => {
     setStartDate(selectedStr);
-    const recomputed = calculateSubscriptionCycle({
-      startDateInput: selectedStr,
-      cadence,
-    });
-    setRenewalDate(recomputed.renewalDate);
     setIsCalendarOpen(false);
   };
 
@@ -150,8 +150,8 @@ export function AddSubscriptionModal({
         paymentMethod,
         startDate: cycle.startDate,
         renewalDate: cycle.renewalDate,
-        currency,
-        currencySymbol,
+        currency: activeCurrency,
+        currencySymbol: activeCurrencySymbol,
         logoUrl: iconPreviewUrl,
       });
       onUpdate(updatedSub);
@@ -161,8 +161,8 @@ export function AddSubscriptionModal({
         price,
         category,
         billingCadence: cadence,
-        currency,
-        currencySymbol,
+        currency: activeCurrency,
+        currencySymbol: activeCurrencySymbol,
         paymentMethod,
         invoiceEmail: realUserEmail,
         logoUrl: iconPreviewUrl,
@@ -284,7 +284,7 @@ export function AddSubscriptionModal({
                       marginRight: 4,
                     }}
                   >
-                    {currencySymbol}
+                    {activeCurrencySymbol}
                   </Text>
                   <TextInput
                     value={price}

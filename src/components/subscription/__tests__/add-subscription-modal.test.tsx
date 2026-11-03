@@ -160,4 +160,50 @@ describe("AddSubscriptionModal", () => {
     expect(updated.amountNumeric).toBe(17.99);
     expect(updated.price).toBe("$17.99/mo");
   });
+
+  it("preserves subscription currency in edit mode instead of overriding with default preference", async () => {
+    const mockOnUpdate = jest.fn();
+    const zohoPkrSub = {
+      id: "sub-zoho",
+      name: "Zoho CRM",
+      initials: "ZC",
+      status: "Active" as const,
+      category: "Productivity",
+      price: "Rs 3,555.00/mo",
+      amountNumeric: 3555,
+      cadence: "Monthly",
+      daysRemaining: 20,
+      renewalDateShort: "Renews Nov 20",
+      nextRenewalFull: "November 20, 2026",
+      billingCycle: "Monthly",
+      paymentMethod: "Bank Transfer",
+      invoiceEmail: "biz@example.com",
+      startDate: "2026-10-20",
+      renewalDate: "2026-11-20",
+      currency: "PKR" as const,
+    };
+
+    const { getByTestId } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        onUpdate={mockOnUpdate}
+        initialSubscription={zohoPkrSub}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-price"), "3800");
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+    const updated = mockOnUpdate.mock.calls[0][0];
+    expect(updated.currency).toBe("PKR");
+    expect(updated.price).toBe("Rs 3800.00/mo");
+  });
 });

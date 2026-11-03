@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Colors, Radius } from "@/constants/theme";
-import { parseDateSafe, toIsoDateString } from "@/utils/subscription-cycle-calculator";
+import {
+  addMonthsClamped,
+  parseDateSafe,
+  toIsoDateString,
+} from "@/utils/subscription-cycle-calculator";
 
 interface CalendarPickerModalProps {
   visible: boolean;
@@ -27,6 +31,19 @@ export function CalendarPickerModal({
   const initialDate = useMemo(() => parseDateSafe(selectedDate), [selectedDate]);
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
+
+  // Synchronize calendar view with selected date when opening or selection changes
+  const [prevVisible, setPrevVisible] = useState(false);
+  const [prevSelectedDate, setPrevSelectedDate] = useState(selectedDate);
+  if ((visible && !prevVisible) || selectedDate !== prevSelectedDate) {
+    setPrevVisible(visible);
+    setPrevSelectedDate(selectedDate);
+    const parsed = parseDateSafe(selectedDate);
+    setViewYear(parsed.getFullYear());
+    setViewMonth(parsed.getMonth());
+  } else if (!visible && prevVisible) {
+    setPrevVisible(false);
+  }
 
   // Days in current viewing month
   const daysInMonth = useMemo(() => {
@@ -73,8 +90,7 @@ export function CalendarPickerModal({
 
   const handlePickLastMonth = () => {
     const current = parseDateSafe(selectedDate);
-    const prev = new Date(current);
-    prev.setMonth(prev.getMonth() - 1);
+    const prev = addMonthsClamped(current, -1);
     setViewYear(prev.getFullYear());
     setViewMonth(prev.getMonth());
     onSelectDate(toIsoDateString(prev));

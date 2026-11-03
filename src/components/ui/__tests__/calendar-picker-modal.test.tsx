@@ -81,4 +81,53 @@ describe("CalendarPickerModal", () => {
     });
     expect(handleSelectDate).toHaveBeenCalled();
   });
+
+  it("clamps month-end date for -1 Mo preset from March 31 to February 28", async () => {
+    const handleSelectDate = jest.fn();
+    const { getByTestId } = await render(
+      <CalendarPickerModal
+        visible={true}
+        selectedDate="2026-03-31"
+        onSelectDate={handleSelectDate}
+        onClose={jest.fn()}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-calendar-last-month"));
+    });
+
+    // In 2026, Feb has 28 days; must be clamped to Feb 28, not Mar 3
+    expect(handleSelectDate).toHaveBeenCalledWith("2026-02-28");
+  });
+
+  it("resets view month when reopening the modal with a new selectedDate", async () => {
+    const { getByText, getByTestId, rerender } = await render(
+      <CalendarPickerModal
+        visible={true}
+        selectedDate="2026-10-18"
+        onSelectDate={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    // Navigate to August
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-calendar-prev-month"));
+      fireEvent.press(getByTestId("btn-calendar-prev-month"));
+    });
+    expect(getByText("August 2026")).toBeTruthy();
+
+    // Close and reopen with December selectedDate
+    await rerender(
+      <CalendarPickerModal
+        visible={true}
+        selectedDate="2026-12-05"
+        onSelectDate={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(getByText("December 2026")).toBeTruthy();
+  });
 });
