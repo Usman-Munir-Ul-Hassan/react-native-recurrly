@@ -48,7 +48,7 @@ jest.mock("@/context/subscription-context", () => ({
 
 jest.mock("@/hooks/use-user-profile", () => ({
   useUserProfile: () => ({
-    photoUrl: undefined,
+    imageUrl: null,
     initials: "UM",
   }),
 }));

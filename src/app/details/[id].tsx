@@ -17,7 +17,7 @@ import { StatusPickerModal, SubscriptionStatus } from "@/components/subscription
 export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { photoUrl, initials: userInitials } = useUserProfile();
+  const { imageUrl, initials: userInitials } = useUserProfile();
   const { formatPrice } = usePreferences();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -190,7 +190,7 @@ export default function SubscriptionDetailScreen() {
             <Ionicons name="share-outline" size={20} color={Colors.pitchBlack} />
           </Pressable>
           {/* Real User Profile Avatar */}
-          <UserAvatar photoUrl={photoUrl} initials={userInitials} size={30} />
+          <UserAvatar imageUrl={imageUrl} initials={userInitials} size={30} />
         </View>
       </View>
 

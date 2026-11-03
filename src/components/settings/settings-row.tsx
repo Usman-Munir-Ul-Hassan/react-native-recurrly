@@ -37,7 +37,7 @@ export function SettingsRow({ item, isLast, onPress }: SettingsRowProps) {
         const isDisabled = item.value === "Disabled";
         const badgeBg = isDisabled ? "#F3F4F6" : item.highlight ? "#F0FDF4" : Colors.badgeBg;
         const badgeBorder = isDisabled ? "#E5E7EB" : item.highlight ? "#BBF7D0" : Colors.badgeBorder;
-        const badgeTextColor = isDisabled ? "#9CA3AF" : item.highlight ? "#166534" : Colors.charcoal;
+        const badgeTextColor = isDisabled ? "#4B5563" : item.highlight ? "#166534" : Colors.charcoal;
 
         return (
           <View

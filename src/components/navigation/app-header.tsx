@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -7,6 +7,7 @@ import { Colors, Typography } from "@/constants/theme";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { usePreferences } from "@/context/preferences-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { requestNotificationPermissions } from "@/services/notification/renewal-notification-service";
 
 /**
  * Top application header displaying real-time user profile information
@@ -16,6 +17,20 @@ export function AppHeader() {
     const router = useRouter();
     const { displayName, initials, imageUrl } = useUserProfile();
     const { alertsEnabled, toggleAlerts } = usePreferences();
+
+    const handleToggleAlerts = async () => {
+        if (!alertsEnabled) {
+            const granted = await requestNotificationPermissions();
+            if (!granted) {
+                Alert.alert(
+                    "Notifications Required",
+                    "Please enable notifications in your device settings to receive 1-day renewal reminders."
+                );
+                return;
+            }
+        }
+        await toggleAlerts();
+    };
 
     return (
         <View className="flex-row items-center justify-between py-3 mb-2">
@@ -49,7 +64,7 @@ export function AppHeader() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 {/* Synced Notification Bell Button */}
                 <Pressable
-                    onPress={toggleAlerts}
+                    onPress={handleToggleAlerts}
                     accessibilityRole="button"
                     accessibilityLabel={
                         alertsEnabled
