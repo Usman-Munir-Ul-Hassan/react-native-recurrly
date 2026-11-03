@@ -89,11 +89,14 @@ export async function detectDuplicateSubscription({
       );
 
       if (aiResult.isDuplicate && aiResult.matchedName) {
-        const matchedSub = sameAccountSubscriptions.find(
-          (s) =>
-            s.name.toLowerCase() === aiResult.matchedName?.toLowerCase() ||
-            isFuzzyMatch(s.name, aiResult.matchedName || "", 0.85)
-        );
+        const matchedSub =
+          sameAccountSubscriptions.find(
+            (s) =>
+              s.name.toLowerCase() === aiResult.matchedName?.toLowerCase() ||
+              isFuzzyMatch(s.name, aiResult.matchedName || "", 0.85) ||
+              s.name.toLowerCase().includes(aiResult.matchedName?.toLowerCase() || "") ||
+              (aiResult.matchedName || "").toLowerCase().includes(s.name.toLowerCase())
+          ) || sameAccountSubscriptions[0];
 
         return {
           isDuplicate: true,

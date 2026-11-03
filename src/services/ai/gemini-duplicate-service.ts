@@ -33,7 +33,7 @@ export async function checkSemanticDuplicateWithGemini(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
 
   const prompt = `You are a subscription duplicate detector.
 Compare the candidate subscription name against the list of existing subscription names for the same account.
