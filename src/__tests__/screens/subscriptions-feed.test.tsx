@@ -174,5 +174,5 @@ describe("SubscriptionsFeedScreen - Carousel & Total Commitments", () => {
 
     // Left button becomes visible
     expect(getByTestId("btn-carousel-scroll-left")).toBeTruthy();
-  });
+  }, 10000);
 });

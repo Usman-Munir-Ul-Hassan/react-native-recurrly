@@ -137,4 +137,31 @@ describe("SubscriptionDetailScreen", () => {
     // Restore
     mockSubscription.renewalDateShort = "Nov 18";
   });
+
+  it("prompts confirmation and deletes subscription while navigating back without flash", async () => {
+    const { getByText } = await render(<SubscriptionDetailScreen />);
+
+    let deleteAlertHandler: (() => void) | undefined;
+    (Alert.alert as jest.Mock).mockImplementation((_title, _msg, buttons) => {
+      const deleteBtn = buttons?.find((b: any) => b.style === "destructive" || b.text === "Delete");
+      deleteAlertHandler = deleteBtn?.onPress;
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Delete from Chronicle"));
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Delete Subscription",
+      expect.stringContaining("permanently remove Spotify Premium"),
+      expect.any(Array)
+    );
+
+    await act(async () => {
+      deleteAlertHandler?.();
+    });
+
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockDelete).toHaveBeenCalledWith("sub-spotify");
+  });
 });

@@ -31,7 +31,17 @@ export default function SubscriptionDetailScreen() {
     updateSubscription,
   } = useSubscriptions();
 
-  const subscription = getSubscription(id);
+  const liveSubscription = getSubscription(id);
+  const [cachedSubscription, setCachedSubscription] = useState(liveSubscription);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sync cache when live subscription is updated
+  if (liveSubscription && liveSubscription !== cachedSubscription) {
+    setCachedSubscription(liveSubscription);
+  }
+
+  // Gracefully retain cached subscription during screen exit transition on deletion
+  const subscription = isDeleting ? cachedSubscription : liveSubscription;
 
   if (!subscription) {
     return (
@@ -63,6 +73,8 @@ export default function SubscriptionDetailScreen() {
   };
 
   const handleDelete = () => {
+    if (isDeleting || !subscription) return;
+
     Alert.alert(
       "Delete Subscription",
       `Are you sure you want to permanently remove ${subscription.name} from your chronicle?`,
@@ -72,8 +84,9 @@ export default function SubscriptionDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteSubscription(subscription.id);
+            setIsDeleting(true);
             router.back();
+            deleteSubscription(subscription.id);
           },
         },
       ]
