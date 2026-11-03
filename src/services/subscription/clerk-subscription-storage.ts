@@ -1,5 +1,4 @@
 import { Subscription } from "@/types/subscription";
-import { MOCK_SUBSCRIPTIONS } from "@/data/subscriptions.data";
 
 export interface UserMetadataResource {
     unsafeMetadata?: Record<string, unknown>;
@@ -8,19 +7,19 @@ export interface UserMetadataResource {
 
 /**
  * Loads subscription records from Clerk user's unsafeMetadata.
- * If the user has no stored subscriptions (e.g. brand new user), returns starter sample data.
+ * For new users or users with empty metadata, returns an empty array [].
  */
 export function loadSubscriptionsFromUser(user: UserMetadataResource | null | undefined): Subscription[] {
     if (!user || !user.unsafeMetadata) {
-        return MOCK_SUBSCRIPTIONS;
+        return [];
     }
 
     const saved = user.unsafeMetadata.subscriptions;
-    if (Array.isArray(saved) && saved.length > 0) {
+    if (Array.isArray(saved)) {
         return saved as Subscription[];
     }
 
-    return MOCK_SUBSCRIPTIONS;
+    return [];
 }
 
 /**

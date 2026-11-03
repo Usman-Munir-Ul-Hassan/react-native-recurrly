@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import { useUser } from "@clerk/expo";
 import { getSubscriptionCurrency, Subscription } from "@/types/subscription";
-import { MOCK_SUBSCRIPTIONS } from "@/data/subscriptions.data";
 import {
     loadSubscriptionsFromUser,
     saveSubscriptionsToUser,
@@ -53,7 +52,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         if (isUserLoaded && user) {
             return loadSubscriptionsFromUser(user);
         }
-        return MOCK_SUBSCRIPTIONS;
+        return [];
     }, [activeOverride, isUserLoaded, user]);
 
     const { alertsEnabled, formatCompactPrice, convertAmount, currency } = usePreferences();
@@ -78,7 +77,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }, [activeSubs, formatCompactPrice, convertAmount, currency]);
 
     const nextRenewalDate =
-        activeSubs[0]?.renewalDateShort?.replace("Renews ", "") || "Nov 1";
+        activeSubs[0]?.renewalDateShort?.replace("Renews ", "") || "—";
 
     const getSubscription = (id: string) => {
         return subscriptions.find((sub) => sub.id === id);

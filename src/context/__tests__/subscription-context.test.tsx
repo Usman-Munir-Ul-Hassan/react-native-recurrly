@@ -8,18 +8,79 @@ jest.mock("@clerk/expo", () => ({
     useUser: jest.fn(),
 }));
 
+const initialSampleSubscriptions: Subscription[] = [
+    {
+        id: "sub-netflix",
+        name: "Netflix",
+        initials: "NF",
+        status: "Active",
+        category: "Entertainment",
+        price: "$15.99/mo",
+        amountNumeric: 15.99,
+        cadence: "in 10 days",
+        daysRemaining: 10,
+        renewalDateShort: "Renews Nov 10",
+        nextRenewalFull: "November 10, 2026",
+        billingCycle: "Monthly",
+        paymentMethod: "Card",
+        invoiceEmail: "user@example.com",
+        startDate: "2026-10-10",
+    },
+    {
+        id: "sub-spotify",
+        name: "Spotify",
+        initials: "SP",
+        status: "Active",
+        category: "Entertainment",
+        price: "$9.99/mo",
+        amountNumeric: 9.99,
+        cadence: "in 15 days",
+        daysRemaining: 15,
+        renewalDateShort: "Renews Nov 15",
+        nextRenewalFull: "November 15, 2026",
+        billingCycle: "Monthly",
+        paymentMethod: "Card",
+        invoiceEmail: "user@example.com",
+        startDate: "2026-10-15",
+    },
+];
+
 describe("SubscriptionContext", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (useUser as jest.Mock).mockReturnValue({
             isLoaded: true,
-            user: null,
+            user: {
+                id: "test-user-1",
+                unsafeMetadata: {
+                    subscriptions: [...initialSampleSubscriptions],
+                },
+                update: jest.fn().mockResolvedValue({}),
+            },
         });
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
         <SubscriptionProvider>{children}</SubscriptionProvider>
     );
+
+    it("should provide empty subscriptions and zero metrics for a brand new user with no metadata", async () => {
+        (useUser as jest.Mock).mockReturnValue({
+            isLoaded: true,
+            user: {
+                id: "new-user-empty",
+                unsafeMetadata: {},
+                update: jest.fn().mockResolvedValue({}),
+            },
+        });
+
+        const { result } = await renderHook(() => useSubscriptions(), { wrapper });
+
+        expect(result.current.subscriptions).toEqual([]);
+        expect(result.current.activeCount).toBe(0);
+        expect(result.current.totalMonthlyAmount).toBe("$0");
+        expect(result.current.nextRenewalDate).toBe("—");
+    });
 
     it("should provide initial subscriptions and calculate active metrics", async () => {
         const { result } = await renderHook(() => useSubscriptions(), { wrapper });
