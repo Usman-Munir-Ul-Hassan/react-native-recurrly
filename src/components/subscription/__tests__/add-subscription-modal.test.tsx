@@ -299,4 +299,28 @@ describe("AddSubscriptionModal", () => {
     expect(newSub.name).toBe("Google Cloud");
     expect(newSub.invoiceEmail).toBe("personal@gmail.com");
   });
+
+  it("prevents double-submit when submit button is pressed rapidly", async () => {
+    const { getByTestId } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-name"), "Figma");
+      fireEvent.changeText(getByTestId("input-subscription-price"), "15");
+    });
+
+    await act(async () => {
+      // Rapid multiple presses
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    expect(mockOnAdd).toHaveBeenCalledTimes(1);
+  });
 });

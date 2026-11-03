@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -78,6 +79,8 @@ export function AddSubscriptionModal({
   const [startDate, setStartDate] = useState(initialSubscription?.startDate ?? defaultToday);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Sync state whenever modal becomes visible or initialSubscription changes
   const [prevVisible, setPrevVisible] = useState(false);
@@ -97,8 +100,10 @@ export function AddSubscriptionModal({
     setPaymentMethod(initialSubscription?.paymentMethod ?? "Card");
     setStartDate(initialSubscription?.startDate ?? defaultToday);
     setErrors({});
+    setIsSubmitting(false);
   } else if (!visible && prevVisible) {
     setPrevVisible(false);
+    setIsSubmitting(false);
   }
 
   const iconPreviewUrl = useMemo(() => resolveBrandIconUrl(name), [name]);
@@ -131,6 +136,8 @@ export function AddSubscriptionModal({
     setStartDate(defaultToday);
     setErrors({});
     setIsCalendarOpen(false);
+    isSubmittingRef.current = false;
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -140,70 +147,79 @@ export function AddSubscriptionModal({
   };
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current) return;
+
     const validation = validateSubscriptionForm(name, price);
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;
     }
 
-    const realUserEmail =
-      accountEmail.trim() || userEmail || initialSubscription?.invoiceEmail || "user@chronicle.app";
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const realUserEmail =
+        accountEmail.trim() || userEmail || initialSubscription?.invoiceEmail || "user@chronicle.app";
 
-    // Prevent duplicate subscriptions (multi-account aware, typo tolerant & AI assisted)
-    const otherSubscriptions = (existingSubscriptions ?? []).filter(
-      (sub) => sub.id !== initialSubscription?.id
-    );
+      // Prevent duplicate subscriptions (multi-account aware, typo tolerant & AI assisted)
+      const otherSubscriptions = (existingSubscriptions ?? []).filter(
+        (sub) => sub.id !== initialSubscription?.id
+      );
 
-    const duplicateCheck = await detectDuplicateSubscription({
-      candidateName: name,
-      candidateEmail: realUserEmail,
-      existingSubscriptions: otherSubscriptions,
-    });
-
-    if (duplicateCheck.isDuplicate) {
-      setErrors((prev) => ({
-        ...prev,
-        name:
-          duplicateCheck.reason ||
-          `A subscription for "${duplicateCheck.matchedSubscription?.name}" already exists for account ${realUserEmail}`,
-      }));
-      return;
-    }
-
-    if (isEditMode && initialSubscription && onUpdate) {
-      const updatedSub = buildUpdatedSubscription({
-        existing: initialSubscription,
-        name,
-        price,
-        category,
-        cadence,
-        paymentMethod,
-        startDate: cycle.startDate,
-        renewalDate: cycle.renewalDate,
-        currency: activeCurrency,
-        currencySymbol: activeCurrencySymbol,
-        logoUrl: iconPreviewUrl,
+      const duplicateCheck = await detectDuplicateSubscription({
+        candidateName: name,
+        candidateEmail: realUserEmail,
+        existingSubscriptions: otherSubscriptions,
       });
-      updatedSub.invoiceEmail = realUserEmail;
-      onUpdate(updatedSub);
-    } else {
-      const newSub = buildNewSubscription({
-        name,
-        price,
-        category,
-        billingCadence: cadence,
-        currency: activeCurrency,
-        currencySymbol: activeCurrencySymbol,
-        paymentMethod,
-        invoiceEmail: realUserEmail,
-        logoUrl: iconPreviewUrl,
-        startDate: cycle.startDate,
-        renewalDate: cycle.renewalDate,
-      });
-      onAdd(newSub);
-    }
 
-    handleClose();
+      if (duplicateCheck.isDuplicate) {
+        setErrors((prev) => ({
+          ...prev,
+          name:
+            duplicateCheck.reason ||
+            `A subscription for "${duplicateCheck.matchedSubscription?.name}" already exists for account ${realUserEmail}`,
+        }));
+        return;
+      }
+
+      if (isEditMode && initialSubscription && onUpdate) {
+        const updatedSub = buildUpdatedSubscription({
+          existing: initialSubscription,
+          name,
+          price,
+          category,
+          cadence,
+          paymentMethod,
+          startDate: cycle.startDate,
+          renewalDate: cycle.renewalDate,
+          currency: activeCurrency,
+          currencySymbol: activeCurrencySymbol,
+          logoUrl: iconPreviewUrl,
+        });
+        updatedSub.invoiceEmail = realUserEmail;
+        onUpdate(updatedSub);
+      } else {
+        const newSub = buildNewSubscription({
+          name,
+          price,
+          category,
+          billingCadence: cadence,
+          currency: activeCurrency,
+          currencySymbol: activeCurrencySymbol,
+          paymentMethod,
+          invoiceEmail: realUserEmail,
+          logoUrl: iconPreviewUrl,
+          startDate: cycle.startDate,
+          renewalDate: cycle.renewalDate,
+        });
+        onAdd(newSub);
+      }
+
+      handleClose();
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -634,25 +650,31 @@ export function AddSubscriptionModal({
               {/* Primary Pinned Action Button */}
               <Pressable
                 onPress={handleSubmit}
+                disabled={isSubmitting}
                 style={{
-                  backgroundColor: Colors.pitchBlack,
+                  backgroundColor: isSubmitting ? Colors.graphite : Colors.pitchBlack,
                   borderRadius: Radius.button,
                   paddingVertical: 14,
                   alignItems: "center",
                   justifyContent: "center",
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
                 testID="btn-submit-subscription"
               >
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: "600",
-                    color: Colors.cloud,
-                    letterSpacing: -0.2,
-                  }}
-                >
-                  {isEditMode ? "Save Changes" : "Add to Chronicle"}
-                </Text>
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color={Colors.cloud} />
+                ) : (
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: "600",
+                      color: Colors.cloud,
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    {isEditMode ? "Save Changes" : "Add to Chronicle"}
+                  </Text>
+                )}
               </Pressable>
             </ScrollView>
           </View>

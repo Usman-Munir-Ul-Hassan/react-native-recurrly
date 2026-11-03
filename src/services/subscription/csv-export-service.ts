@@ -2,12 +2,24 @@ import { Share } from "react-native";
 import { Subscription } from "@/types/subscription";
 
 /**
- * Escapes CSV field value conforming to RFC 4180 standard.
+ * Escapes CSV field value conforming to RFC 4180 standard and neutralizes
+ * CSV / formula injection (CWE-1236) triggers.
  */
 function escapeCsvField(value: string | number | undefined | null): string {
   if (value === undefined || value === null) return '""';
-  const stringValue = String(value);
-  if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+  let stringValue = String(value);
+
+  // OWASP CSV Injection prevention: neutralize formula trigger characters
+  if (/^[=+\-@\t\r]/.test(stringValue)) {
+    stringValue = `'${stringValue}`;
+  }
+
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes('"') ||
+    stringValue.includes("\n") ||
+    stringValue.includes("\r")
+  ) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
   return stringValue;

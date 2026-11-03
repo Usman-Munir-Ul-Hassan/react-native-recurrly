@@ -48,6 +48,19 @@ describe("csv-export-service", () => {
       expect(lines[1]).toContain("Active");
       expect(lines[1]).toContain("user@example.com");
     });
+
+    it("neutralizes potential CSV formula injection characters (CWE-1236)", () => {
+      const maliciousSub: Subscription = {
+        ...mockSub,
+        name: "=cmd|' /C calc'!A0",
+        category: "+SUM(1,2)",
+        paymentMethod: "@admin",
+      };
+      const csv = generateSubscriptionCsv([maliciousSub]);
+      expect(csv).toContain("'=cmd|' /C calc'!A0");
+      expect(csv).toContain("'+SUM(1,2)");
+      expect(csv).toContain("'@admin");
+    });
   });
 
   describe("exportAndShareSubscriptionsCsv", () => {
