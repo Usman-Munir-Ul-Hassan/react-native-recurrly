@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-native";
-import { useRenewalNotifications } from "../use-renewal-notifications";
+import { useRenewalNotifications } from "@/hooks/use-renewal-notifications";
 import { buildRenewalDigest } from "@/services/notification/notification-digest-builder";
 import { dispatchRenewalNotification } from "@/services/notification/renewal-notification-service";
 import { Subscription } from "@/types/subscription";

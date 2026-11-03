@@ -99,15 +99,15 @@ export function calculateSubscriptionCycle(
   } else {
     // Automatically project the renewal date from the starting date using clamped addition
     if (cadence === "Yearly") {
-      let yearsAdded = 1;
-      nextRenewal = addMonthsClamped(startDate, yearsAdded * 12);
+      let yearsAdded = 0;
+      nextRenewal = startDate;
       while (nextRenewal.getTime() <= startOfDayToday.getTime()) {
         yearsAdded += 1;
         nextRenewal = addMonthsClamped(startDate, yearsAdded * 12);
       }
     } else {
-      let monthsAdded = 1;
-      nextRenewal = addMonthsClamped(startDate, monthsAdded);
+      let monthsAdded = 0;
+      nextRenewal = startDate;
       while (nextRenewal.getTime() <= startOfDayToday.getTime()) {
         monthsAdded += 1;
         nextRenewal = addMonthsClamped(startDate, monthsAdded);

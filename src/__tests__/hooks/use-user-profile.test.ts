@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react-native";
 import { useUser } from "@clerk/expo";
-import { useUserProfile } from "../use-user-profile";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 jest.mock("@clerk/expo", () => ({
     useUser: jest.fn(),

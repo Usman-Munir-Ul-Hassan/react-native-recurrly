@@ -100,6 +100,30 @@ describe("subscription-cycle-calculator", () => {
       expect(result.renewalDateShort).toBe("Renews Nov 25");
     });
 
+    it("treats future startDate as the first billing date for monthly cadence", () => {
+      const result = calculateSubscriptionCycle({
+        startDateInput: "2026-11-20",
+        cadence: "Monthly",
+        referenceToday,
+      });
+
+      // Since Nov 20 is after Nov 3, it is the first upcoming renewal
+      expect(result.renewalDate).toBe("2026-11-20");
+      expect(result.daysRemaining).toBe(17);
+      expect(result.renewalDateShort).toBe("Renews Nov 20");
+    });
+
+    it("treats future startDate as the first billing date for yearly cadence", () => {
+      const result = calculateSubscriptionCycle({
+        startDateInput: "2027-02-15",
+        cadence: "Yearly",
+        referenceToday,
+      });
+
+      expect(result.renewalDate).toBe("2027-02-15");
+      expect(result.renewalDateShort).toBe("Renews Feb 15");
+    });
+
     it("formats 0 days remaining as 'today' and 1 day remaining as 'tomorrow'", () => {
       const todayResult = calculateSubscriptionCycle({
         renewalDateInput: "2026-11-03",
