@@ -206,4 +206,97 @@ describe("AddSubscriptionModal", () => {
     expect(updated.currency).toBe("PKR");
     expect(updated.price).toBe("Rs 3800.00/mo");
   });
+
+  it("blocks duplicate submission when typo of existing service is entered under same email", async () => {
+    const existingSubs = [
+      {
+        id: "sub-1",
+        name: "Google Cloud",
+        initials: "GC",
+        status: "Active" as const,
+        category: "Dev Tools",
+        price: "$20.00/mo",
+        amountNumeric: 20,
+        cadence: "Monthly",
+        daysRemaining: 15,
+        renewalDateShort: "Nov 18",
+        nextRenewalFull: "November 18, 2026",
+        billingCycle: "Monthly",
+        paymentMethod: "Card",
+        invoiceEmail: "work@company.com",
+      },
+    ];
+
+    const { getByTestId, findByText } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        userEmail="work@company.com"
+        existingSubscriptions={existingSubs}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-name"), "Google Cload");
+      fireEvent.changeText(getByTestId("input-subscription-price"), "25");
+      fireEvent.changeText(getByTestId("input-account-email"), "work@company.com");
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    // Should NOT add and should show duplicate error
+    expect(mockOnAdd).not.toHaveBeenCalled();
+    const errorMsg = await findByText(/already exists for account/i);
+    expect(errorMsg).toBeTruthy();
+  });
+
+  it("allows same subscription name when account email is different (multi-account)", async () => {
+    const existingSubs = [
+      {
+        id: "sub-1",
+        name: "Google Cloud",
+        initials: "GC",
+        status: "Active" as const,
+        category: "Dev Tools",
+        price: "$20.00/mo",
+        amountNumeric: 20,
+        cadence: "Monthly",
+        daysRemaining: 15,
+        renewalDateShort: "Nov 18",
+        nextRenewalFull: "November 18, 2026",
+        billingCycle: "Monthly",
+        paymentMethod: "Card",
+        invoiceEmail: "work@company.com",
+      },
+    ];
+
+    const { getByTestId } = await render(
+      <AddSubscriptionModal
+        visible={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        userEmail="personal@gmail.com"
+        existingSubscriptions={existingSubs}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("input-subscription-name"), "Google Cloud");
+      fireEvent.changeText(getByTestId("input-subscription-price"), "25");
+      fireEvent.changeText(getByTestId("input-account-email"), "personal@gmail.com");
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("btn-submit-subscription"));
+    });
+
+    // Permitted because account email is different!
+    expect(mockOnAdd).toHaveBeenCalledTimes(1);
+    const newSub = mockOnAdd.mock.calls[0][0];
+    expect(newSub.name).toBe("Google Cloud");
+    expect(newSub.invoiceEmail).toBe("personal@gmail.com");
+  });
 });

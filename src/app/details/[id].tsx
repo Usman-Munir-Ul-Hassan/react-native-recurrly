@@ -22,6 +22,7 @@ export default function SubscriptionDetailScreen() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const {
+    subscriptions,
     getSubscription,
     cancelSubscription,
     pauseSubscription,
@@ -421,6 +422,7 @@ export default function SubscriptionDetailScreen() {
         visible={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialSubscription={subscription}
+        existingSubscriptions={subscriptions}
         onAdd={() => {}}
         onUpdate={(updated) => {
           updateSubscription(subscription.id, updated);

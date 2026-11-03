@@ -32,6 +32,7 @@ import {
 } from "@/utils/subscription-cycle-calculator";
 import { formatRecurrenceNote } from "@/utils/recurrence-formatter";
 import { CalendarPickerModal } from "@/components/ui/calendar-picker-modal";
+import { detectDuplicateSubscription } from "@/services/subscription/duplicate-detection-orchestrator";
 
 interface AddSubscriptionModalProps {
   visible: boolean;
@@ -40,6 +41,7 @@ interface AddSubscriptionModalProps {
   onUpdate?: (updated: Subscription) => void;
   initialSubscription?: Subscription | null;
   userEmail?: string;
+  existingSubscriptions?: Subscription[];
 }
 
 export function AddSubscriptionModal({
@@ -49,6 +51,7 @@ export function AddSubscriptionModal({
   onUpdate,
   initialSubscription,
   userEmail,
+  existingSubscriptions,
 }: AddSubscriptionModalProps) {
   const { currency: prefCurrency, currencySymbol: prefCurrencySymbol } = usePreferences();
   const isEditMode = Boolean(initialSubscription);
@@ -61,6 +64,9 @@ export function AddSubscriptionModal({
   const [name, setName] = useState(initialSubscription?.name ?? "");
   const [price, setPrice] = useState(
     initialSubscription?.amountNumeric ? String(initialSubscription.amountNumeric) : ""
+  );
+  const [accountEmail, setAccountEmail] = useState(
+    initialSubscription?.invoiceEmail ?? userEmail ?? ""
   );
   const [cadence, setCadence] = useState<"Monthly" | "Yearly">(
     initialSubscription?.billingCycle?.toLowerCase().includes("yearly") ? "Yearly" : "Monthly"
@@ -83,6 +89,7 @@ export function AddSubscriptionModal({
     setPrice(
       initialSubscription?.amountNumeric ? String(initialSubscription.amountNumeric) : ""
     );
+    setAccountEmail(initialSubscription?.invoiceEmail ?? userEmail ?? "");
     setCadence(
       initialSubscription?.billingCycle?.toLowerCase().includes("yearly") ? "Yearly" : "Monthly"
     );
@@ -117,6 +124,7 @@ export function AddSubscriptionModal({
   const handleClose = () => {
     setName("");
     setPrice("");
+    setAccountEmail(userEmail ?? "");
     setCadence("Monthly");
     setCategory("General");
     setPaymentMethod("Card");
@@ -131,14 +139,36 @@ export function AddSubscriptionModal({
     setIsCalendarOpen(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validation = validateSubscriptionForm(name, price);
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;
     }
 
-    const realUserEmail = userEmail || initialSubscription?.invoiceEmail || "user@chronicle.app";
+    const realUserEmail =
+      accountEmail.trim() || userEmail || initialSubscription?.invoiceEmail || "user@chronicle.app";
+
+    // Prevent duplicate subscriptions (multi-account aware, typo tolerant & AI assisted)
+    const otherSubscriptions = (existingSubscriptions ?? []).filter(
+      (sub) => sub.id !== initialSubscription?.id
+    );
+
+    const duplicateCheck = await detectDuplicateSubscription({
+      candidateName: name,
+      candidateEmail: realUserEmail,
+      existingSubscriptions: otherSubscriptions,
+    });
+
+    if (duplicateCheck.isDuplicate) {
+      setErrors((prev) => ({
+        ...prev,
+        name:
+          duplicateCheck.reason ||
+          `A subscription for "${duplicateCheck.matchedSubscription?.name}" already exists for account ${realUserEmail}`,
+      }));
+      return;
+    }
 
     if (isEditMode && initialSubscription && onUpdate) {
       const updatedSub = buildUpdatedSubscription({
@@ -154,6 +184,7 @@ export function AddSubscriptionModal({
         currencySymbol: activeCurrencySymbol,
         logoUrl: iconPreviewUrl,
       });
+      updatedSub.invoiceEmail = realUserEmail;
       onUpdate(updatedSub);
     } else {
       const newSub = buildNewSubscription({
@@ -421,6 +452,56 @@ export function AddSubscriptionModal({
                     {errors.name}
                   </Text>
                 )}
+
+                {/* Divider */}
+                <View style={{ height: 1, backgroundColor: Colors.fog, marginLeft: 60 }} />
+
+                {/* Row: Account Email (for multi-account distinction) */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      backgroundColor: Colors.cloud,
+                      borderWidth: 1,
+                      borderColor: Colors.fog,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.graphite }}>@</Text>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <TextInput
+                      value={accountEmail}
+                      onChangeText={(val) => {
+                        setAccountEmail(val);
+                        if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      placeholder="Account email (e.g. work@company.com)"
+                      placeholderTextColor={Colors.ash}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "500",
+                        color: Colors.pitchBlack,
+                        paddingVertical: 0,
+                      }}
+                      testID="input-account-email"
+                    />
+                  </View>
+                </View>
 
                 {/* Divider */}
                 <View style={{ height: 1, backgroundColor: Colors.fog, marginLeft: 60 }} />

@@ -305,6 +305,7 @@ export default function SubscriptionsFeedScreen() {
           onClose={() => setIsAddModalOpen(false)}
           onAdd={addSubscription}
           userEmail={email}
+          existingSubscriptions={subscriptions}
         />
       </ScrollView>
     </SafeAreaView>
