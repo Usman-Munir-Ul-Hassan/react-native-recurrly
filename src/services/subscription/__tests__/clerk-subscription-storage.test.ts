@@ -2,21 +2,29 @@ import {
     loadSubscriptionsFromUser,
     saveSubscriptionsToUser,
 } from "../clerk-subscription-storage";
-import { MOCK_SUBSCRIPTIONS } from "@/data/subscriptions.data";
 import { Subscription } from "@/types/subscription";
 
 describe("clerkSubscriptionStorage", () => {
     describe("loadSubscriptionsFromUser", () => {
-        it("should return MOCK_SUBSCRIPTIONS when user is null or undefined", () => {
-            expect(loadSubscriptionsFromUser(null)).toEqual(MOCK_SUBSCRIPTIONS);
-            expect(loadSubscriptionsFromUser(undefined)).toEqual(MOCK_SUBSCRIPTIONS);
+        it("should return empty array when user is null or undefined", () => {
+            expect(loadSubscriptionsFromUser(null)).toEqual([]);
+            expect(loadSubscriptionsFromUser(undefined)).toEqual([]);
         });
 
-        it("should return MOCK_SUBSCRIPTIONS when unsafeMetadata has no subscriptions", () => {
+        it("should return empty array when unsafeMetadata has no subscriptions", () => {
             const mockUser = {
                 unsafeMetadata: {},
             };
-            expect(loadSubscriptionsFromUser(mockUser)).toEqual(MOCK_SUBSCRIPTIONS);
+            expect(loadSubscriptionsFromUser(mockUser)).toEqual([]);
+        });
+
+        it("should return empty array when unsafeMetadata.subscriptions is empty array", () => {
+            const mockUser = {
+                unsafeMetadata: {
+                    subscriptions: [],
+                },
+            };
+            expect(loadSubscriptionsFromUser(mockUser)).toEqual([]);
         });
 
         it("should return saved subscriptions when present in unsafeMetadata", () => {

@@ -4,14 +4,10 @@ import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, LogBox, View } from "react-native";
+import { ActivityIndicator, Alert, LogBox, Text, View } from "react-native";
 import "../../global.css";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
-
-if (!publishableKey) {
-  throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Add your key to .env.local.");
-}
 
 LogBox.ignoreLogs([
   "ImageBackground is deprecated",
@@ -51,7 +47,7 @@ function InitialLayout() {
         [{ text: "OK" }]
       );
     }
-  }, [isSignedIn, isLoaded, segments]);
+  }, [isSignedIn, isLoaded, segments, router]);
 
   if (!isLoaded) {
     return (
@@ -65,6 +61,42 @@ function InitialLayout() {
 }
 
 export default function RootLayout() {
+  if (!publishableKey) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#050505",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
+        <Text
+          style={{
+            color: "#EF4444",
+            fontSize: 18,
+            fontWeight: "700",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          Configuration Error
+        </Text>
+        <Text
+          style={{
+            color: "#9E9E9E",
+            fontSize: 14,
+            textAlign: "center",
+            lineHeight: 20,
+          }}
+        >
+          Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Please verify your environment configuration.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <PreferencesProvider>
